@@ -6,6 +6,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const MODELS = { gris: 'modelos/tinto_v4.glb' }; // id del gato → archivo
 const PANELA = 'modelos/panela.glb';
+// Utilería modelada en Blender (modelos/props/). rotY: giro para que se vea de perfil; tint: pieza que se tiñe por variante
+const PROPS = {
+  raton: {}, moneda: {}, gallina: {}, cocodrilo: {}, valla: {}, pescado: { rotY: Math.PI / 2 },
+  carro: { tint: 'pintura', colors: [0xf2c230, 0xd8433b, 0xf2f2f2] }
+};
 const SCALE = 1.25; // misma escala raíz que los gatos hechos por código
 
 export function install(game) {
@@ -40,6 +45,29 @@ export function install(game) {
       if (game.catDef.id === id) game.setCat(id); // si ya se está usando, se cambia en caliente
     }, undefined, e => { game.models.failed[id] = String(e); }); // si no carga, queda el gato hecho por código
   }
+
+  // Utilería: cada figura reemplaza al prototipo hecho por código que el núcleo copia al sembrar la calle.
+  // Va directo con el material de color por vértice; pasar por bake() borraría esos colores.
+  game.on('ready', () => {
+    let pending = Object.keys(PROPS).length;
+    const done = () => { if (--pending === 0 && game.S.state !== 'play' && game.S.state !== 'dying') game.reset(); };
+    const tints = {};
+    const tintMat = c => tints[c] || (tints[c] = new THREE.MeshLambertMaterial({ color: c, vertexColors: true }));
+    for (const [type, opt] of Object.entries(PROPS)) loader.load(`modelos/props/${type}.glb`, gltf => {
+      gltf.scene.updateMatrixWorld(true);
+      const rot = new THREE.Matrix4().makeRotationY(opt.rotY || 0), parts = [];
+      gltf.scene.traverse(o => {
+        if (o.isMesh && o.geometry.attributes.color) parts.push({ geometry: o.geometry.clone().applyMatrix4(o.matrixWorld).applyMatrix4(rot), tint: o.name === opt.tint });
+      });
+      if (!parts.length) { game.models.failed[type] = 'sin mallas con color por vértice'; return done(); }
+      const n = game.VARIANTS[type] || 0;
+      for (let v = 0; v < Math.max(1, n); v++) {
+        game.protos[type + (n ? v : '')] = parts.map(p => ({ geometry: p.geometry, material: p.tint ? tintMat(opt.colors[v % opt.colors.length]) : game.vcMat }));
+      }
+      game.models.loaded[type] = `modelos/props/${type}.glb`;
+      done();
+    }, undefined, e => { game.models.failed[type] = String(e); done(); }); // si no carga, queda la figura hecha por código
+  });
 
   // Panela: el perro ya existe y fx.js anima sus piezas, así que el modelo de Blender no lo reemplaza:
   // se esconde el perro hecho por código y cada pieza nueva se cuelga del pivote que ya se está animando.

@@ -145,13 +145,15 @@ export function install(game) {
   /* ---------- El cocodrilo grande: lo que obliga a salir ---------- */
   // Abajo Panela no persigue, pero un cocodrilo sí, y cada segundo está más cerca. Solo la escalera lo deja atrás.
   const CATCH_IN = 26, BITE_AT = 1.7; // segundos hasta alcanzarlo; distancia del mordisco
-  const boss = game.spawn('cocodrilo');
-  boss.scale.setScalar(1.35); // más grande tapa a Tinto, porque la cámara va detrás del cocodrilo
-  boss.visible = false;
-  game.scene.add(boss);
-  let chase = 0, warned = false;
+  let boss = new THREE.Group(), chase = 0, warned = false;
+  function makeBoss() { // se arma al bajar, para tomar el modelo de Blender si ya cargó
+    game.scene.remove(boss);
+    boss = game.spawn('cocodrilo');
+    boss.scale.setScalar(1.35); // más grande tapa a Tinto, porque la cámara va detrás del cocodrilo
+    game.scene.add(boss);
+  }
   const gapAt = t => Math.max(BITE_AT - .3, game.cfg.gapMax + 1.5 - t * (game.cfg.gapMax + 1.5 - BITE_AT) / CATCH_IN);
-  game.on('sub', w => { chase = 0; warned = false; boss.visible = !!w; });
+  game.on('sub', w => { chase = 0; warned = false; if (w) makeBoss(); boss.visible = !!w; });
   game.on('update', dt => {
     if (!game.sub || S.state !== 'play') return;
     chase += dt;

@@ -980,7 +980,7 @@ function tick(t) {
 export const game = {
   THREE, scene, camera, renderer, sun, hemi, view, geo, LANE, HALF, DEPTH,
   part, bake, mat, canvasTex, stripes, leg, makeCat, makeDog, runCycle, rand, pick, clamp,
-  BUILD, SPEC, VARIANTS, ROWS, spawn, addObstacle, block, defaultSide, defaultFacade, defaultRoad, fill: defaultFill,
+  BUILD, SPEC, VARIANTS, ROWS, protos, vcMat, spawn, addObstacle, block, defaultSide, defaultFacade, defaultRoad, fill: defaultFill,
   worlds, WORLD_DEFAULTS, setWorld, cats, setCat, refreshMenu,
   cfg, S, p, hooks, flags, store, on, emit, sfx, bark,
   start, reset, end, showMenu, enterSub, exitSub, applyWorld, damage, collect, hud, setPaused, step: frame, sim,
