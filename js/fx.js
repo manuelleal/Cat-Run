@@ -3,6 +3,7 @@
 // En pausa no avanza nada; al empezar partida (o volver al menú) se reinicia todo el estado.
 export function install(game) {
   const { THREE, scene, camera, renderer, view, dog, S, p, cfg, geo, part, on } = game;
+  game.flags.cameraOwner = true; // la cámara (y su sacudida) es de este módulo: el núcleo no la sacude
   const PI = Math.PI, TAU = PI * 2;
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const sat = x => x < 0 ? 0 : x > 1 ? 1 : x;
@@ -343,7 +344,15 @@ export function install(game) {
   function setCombo(n) {
     if (n === comboShown) return;
     comboShown = n;
-    if (n >= 3) { comboNum.textContent = 'x' + n; comboEl.className = n >= 50 ? 'fire' : n >= 20 ? 'hot' : ''; }
+    if (n >= 2) { comboNum.textContent = 'x' + n; comboEl.className = n >= 5 ? 'fire' : n >= 3 ? 'hot' : ''; }
+  }
+  comboLbl.textContent = 'PUNTOS';
+  // avance de la racha hacia el siguiente escalón del multiplicador
+  function multProgress() {
+    const steps = cfg.multSteps, m = S.mult;
+    if (m > steps.length) return 1;
+    const lo = m > 1 ? steps[m - 2] : 0, hi = steps[m - 1];
+    return sat((S.racha - lo) / (hi - lo));
   }
   function screen() {
     const cin = mode === 'dying' || mode === 'lost' || mode === 'won' ? inOutCubic(sat(T / .5)) : 0;
@@ -353,11 +362,12 @@ export function install(game) {
     const by = Math.round((1 - cin) * 101);
     sty(b1, 'transform', `translateY(${-by}%)`); sty(b2, 'transform', `translateY(${by}%)`);
     // racha
-    if (combo >= 3) {
+    if (S.mult >= 2 && mode === 'play') {
       const s = 1 + clamp(comboPunch.x, -.3, .9);
-      sty(comboEl, 'opacity', op(Math.min(1, comboT / .35)));
+      setCombo(S.mult);
+      sty(comboEl, 'opacity', '1');
       sty(comboEl, 'transform', `rotate(${(-7 + comboPunch.x * 14).toFixed(1)}deg) scale(${s.toFixed(3)})`);
-      sty(comboBar, 'transform', `scaleX(${sat(comboT / 2).toFixed(2)})`);
+      sty(comboBar, 'transform', `scaleX(${multProgress().toFixed(2)})`);
     } else sty(comboEl, 'opacity', '0');
     // cartel de hito
     if (banner.t >= 0) {
@@ -377,10 +387,6 @@ export function install(game) {
     flashRed = Math.max(0, flashRed - dt * 1.6);
     if (banner.t >= 0) { banner.t += dt; if (banner.t >= banner.dur) banner.t = -1; }
     for (const t of texts) if (t.on) { t.t += dt; if (t.t >= t.dur) { t.on = false; t.el.style.opacity = 0; } }
-    if (combo > 0 && mode === 'play') {
-      comboT -= dt;
-      if (comboT <= 0) { combo = 0; setCombo(0); }
-    }
     step(comboPunch, 0, 240, 11, dt);
     screen();
   }
@@ -560,7 +566,6 @@ export function install(game) {
   /* ================= Cámara ================= */
   const noise = (t, a, b, ph) => (Math.sin(t * a + ph) + Math.sin(t * b + ph * 2.3)) * .5;
   function cam(dt, v) {
-    if (S.shake > 0) { trauma = Math.max(trauma, Math.min(1, S.shake * 1.6)); S.shake = 0; } // la sacudida del núcleo se convierte en la mía
     fwd.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
     right.set(Math.cos(p.yaw), 0, -Math.sin(p.yaw));
     const pos = game.pos, cinematic = mode === 'dying' || mode === 'lost' || mode === 'won';
@@ -660,8 +665,8 @@ export function install(game) {
   }
 
   /* ================= Eventos ================= */
-  on('start', () => { resetAll(); mode = 'play'; lastState = 'play'; });
-  on('update', () => { if (S.shake > 0) { trauma = Math.max(trauma, Math.min(1, S.shake * 1.6)); S.shake = 0; } });
+  on('start', () => { resetAll(); milesShown.clear(); mode = 'play'; lastState = 'play'; });
+  on('rescueStart', () => { mode = 'play'; caught = false; cine.fresh = false; T = 0; });
   on('jump', e => {
     fwd.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
     if (e && e.air > 0) { flip.t = 0; flip.dur = .5; flip.dir = -1; flip.hop = 0; sparkle(game.pos.x, p.y + .6, game.pos.z, 5, COL.white, COL.gold2, 3, .8); }
@@ -687,7 +692,7 @@ export function install(game) {
     o = o || {};
     fwd.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
     const pos = game.pos, big = sat((o.dmg || 20) / 30);
-    S.shake = 0; trauma = Math.min(1, Math.max(trauma, .6 + big * .4));
+    trauma = Math.min(1, Math.max(trauma, .6 + big * .4));
     flash = .55; flashRed = .7 + big * .3;
     fovS.x -= 4 + big * 3; fovS.v += 20; // golpe de FOV: se cierra de golpe y rebota
     stars(pos.x, Math.max(0, p.y) + 1.2, pos.z, 10, 5);
@@ -697,12 +702,24 @@ export function install(game) {
     else { flip.t = 0; flip.dur = .6; flip.dir = 1; flip.hop = .75; stretch.x = .7; stretch.v = 3; }
     // el perro embiste y ladra
     dogLunge.v += 13; dogSq.x = .82; barkT = 0;
-    if (!game.sub) floatText('¡GUAU!', dog.position.x, 3.1, dog.position.z, 'red', .75, 46); // en el drenaje Panela no está
+    if (!game.sub) floatText(pick(['¡Espérame!', '¡Juguemos!', '¡Tintooo!']), dog.position.x, 3.1, dog.position.z, 'gold', .75, 46); // Panela no amenaza: juega
     if (o.mesh) react.push({ mesh: o.mesh, t: 0, dur: o.fly ? .7 : .65, fly: !!o.fly, side: Math.random() < .5 ? -1 : 1 });
-    if (combo >= 5) floatText('¡Racha perdida!', pos.x, 2.6, pos.z, '', .9, 50, .8);
-    combo = 0; comboT = 0; setCombo(0);
   });
-  const MILES = { 10: '¡BUENA RACHA!', 25: '¡MIAU-RAVILLOSO!', 50: '¡IMPARABLE!', 100: '¡LEYENDA GATUNA!', 200: '¡SIETE VIDAS!' };
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  on('mult', e => { // el multiplicador real lo lleva el núcleo (S.mult); aquí solo se celebra o se lamenta
+    const pos = game.pos;
+    setCombo(S.mult);
+    if (e.up) { comboPunch.v += 9; if (MILES[e.mult] && !milesShown.has(e.mult)) { milesShown.add(e.mult); showBanner(MILES[e.mult]); fovS.v += 14; sparkle(pos.x, p.y + 1.7, pos.z, 16, COL.gold, COL.white, 7, .9); } }
+    else floatText('¡Racha perdida!', pos.x, 2.6, pos.z, '', .9, 50, .8);
+  });
+  on('nearmiss', e => { const pos = game.pos; floatText(pick(['¡Por un pelo!', '¡Uy!', '¡Rozando!', '¡Ni lo tocó!']), pos.x, p.y + 2, pos.z, 'gold', .8, 60, .9); linesK = Math.max(linesK, .6); });
+  on('pass', o => { if (o.type !== 'caneca') { const pos = game.pos; floatText('¡Por debajo!', pos.x, 1.6, pos.z, 'gold', .7, 50, .8); } });
+  on('bocado', () => showBanner('¡BOCADO LISTO!'));
+  on('bocadoUsed', () => { showBanner('¡Se distrajo!'); const pos = game.pos; sparkle(pos.x, 1.2, pos.z, 12, COL.pink, COL.white, 5, .9); });
+  on('caneca', e => { const pos = game.pos; floatText(e.charged ? '🗑️ ¡Escondite listo!' : '+10 🐾', pos.x, 2.2, pos.z, 'gold', 1, 60, .9); });
+  on('rescue', () => showBanner('¡POR UN PELO!'));
+  on('stumble', () => { if (S.danger > 0) floatText('¡Cuidado!', game.pos.x, 2.6, game.pos.z, 'red', .7, 40, .8); });
+  const MILES = { 2: '¡BUENA RACHA!', 3: '¡MIAU-RAVILLOSO!', 4: '¡IMPARABLE!', 5: '¡LEYENDA GATUNA!' }; // por escalón del multiplicador, una vez por partida
   on('collect', o => {
     o = o || {};
     fwd.set(-Math.sin(p.yaw), 0, -Math.cos(p.yaw));
@@ -718,15 +735,9 @@ export function install(game) {
       ring(pos.x, y, pos.z, COL.gold, 2.6, .26, .85);
       floatText('+1', pos.x, y + .7, pos.z, 'gold', .6, 56);
     }
-    combo++; comboT = 2; comboBest = Math.max(comboBest, combo);
-    comboPunch.v += 7; setCombo(combo);
-    if (MILES[combo]) {
-      showBanner(MILES[combo]);
-      sparkle(pos.x, y + .5, pos.z, 16, COL.gold, COL.white, 7, .9);
-      game.sfx(1320, .22, 'triangle', .07, 700);
-      fovS.v += 14;
-    }
+    comboPunch.v += 2;
   });
+  const milesShown = new Set();
   on('dying', () => { mode = 'dying'; T = 0; caught = true; landed = false; cine.fresh = true; flip.t = -1; combo = 0; setCombo(0); });
   on('over', e => {
     const won = !!(e && e.won);
@@ -786,7 +797,7 @@ export function install(game) {
       else if (kind === 'anillo') ring(x, y, z, COL.white, 4, .3, 0);
       else sparkle(x, y, z, n, COL.gold, COL.white, 4, 0);
     },
-    get combo() { return combo; }, get comboBest() { return comboBest; },
+    get combo() { return S.mult; }, get comboBest() { return S.multBest; },
     get particles() { return pN; }, maxParticles: MAXP
   };
 

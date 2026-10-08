@@ -134,31 +134,38 @@ const CSS = `
 
 // Estrellas totales para abrir cada mundo (por índice)
 const GATE = [0, 8, 20];
-const D = (baseSpeed, accel, maxSpeed, g0, g1) => ({ baseSpeed, accel, maxSpeed, rowGap: [g0, g1] });
-// goal: [tipo, cantidad] · maxHits: choques permitidos · limit: segundos · stars: dos retos extra [métrica, valor]
+// Reglas del nivel (capa 'level' de js/rules.js): velocidad, escalón tope del generador y con cuánto calor empieza.
+// Ya no hay rowGap ni vida: la separación entre filas sale del escalón, y "choques" son tropiezos.
+const D = (baseSpeed, accel, maxSpeed, tierMax, heatStart = 0) => ({ baseSpeed, accel, maxSpeed, tierMax, heatStart });
+// goal: [tipo, cantidad] · maxHits: tropiezos permitidos · limit: segundos · stars: dos retos extra [métrica, valor]
 const LEVELS = [
   [
-    { goal: ['dist', 300], cfg: D(13, .08, 20, 30, 38), stars: [['hits', 2], ['hits', 0]] },
-    { goal: ['mice', 12], cfg: D(14, .1, 22, 28, 36), stars: [['time', 45], ['time', 30]] },
-    { goal: ['coins', 40], cfg: D(15, .1, 22, 27, 34), stars: [['health', 60], ['health', 90]] },
-    { goal: ['turns', 2], cfg: D(15, .12, 24, 26, 33), stars: [['mice', 8], ['mice', 16]] },
-    { goal: ['dist', 600], maxHits: 3, cfg: D(16, .15, 26, 24, 32), stars: [['hits', 1], ['hits', 0]] }
+    { goal: ['dist', 300], cfg: D(13, .08, 20, 1), stars: [['hits', 2], ['hits', 0]] },
+    { goal: ['mice', 12], cfg: D(14, .1, 22, 1), stars: [['time', 50], ['time', 35]] },
+    { goal: ['coins', 40], cfg: D(15, .1, 22, 1), stars: [['hits', 2], ['hits', 0]] },
+    { goal: ['turns', 2], cfg: D(15, .12, 24, 2), stars: [['mice', 6], ['mice', 12]] },
+    { goal: ['dist', 600], maxHits: 3, cfg: D(16, .15, 26, 2, 10), stars: [['hits', 1], ['hits', 0]] }
   ],
   [
-    { goal: ['dist', 700], cfg: D(17, .18, 28, 22, 29), stars: [['coins', 40], ['coins', 80]] },
-    { goal: ['mice', 25], limit: 45, cfg: D(18, .18, 28, 22, 29), stars: [['health', 50], ['health', 85]] },
-    { goal: ['coins', 90], cfg: D(18, .2, 30, 21, 28), stars: [['hits', 3], ['hits', 1]] },
-    { goal: ['turns', 4], cfg: D(19, .2, 30, 20, 27), stars: [['coins', 30], ['coins', 60]] },
-    { goal: ['dist', 1000], maxHits: 2, cfg: D(19, .22, 32, 20, 27), stars: [['hits', 1], ['hits', 0]] }
+    { goal: ['dist', 700], cfg: D(17, .18, 28, 2, 20), stars: [['coins', 40], ['coins', 80]] },
+    { goal: ['mice', 15], limit: 45, cfg: D(18, .18, 28, 2, 20), stars: [['hits', 2], ['hits', 0]] },
+    { goal: ['coins', 90], cfg: D(18, .2, 30, 3, 20), stars: [['hits', 3], ['hits', 1]] },
+    { goal: ['turns', 4], cfg: D(19, .2, 30, 3, 30), stars: [['coins', 30], ['coins', 60]] },
+    { goal: ['dist', 1000], maxHits: 2, cfg: D(19, .22, 32, 3, 30), stars: [['hits', 1], ['hits', 0]] }
   ],
   [
-    { goal: ['dist', 1200], cfg: D(20, .25, 34, 18, 25), stars: [['hits', 3], ['hits', 1]] },
-    { goal: ['mice', 40], cfg: D(21, .25, 34, 18, 24), stars: [['time', 60], ['time', 45]] },
-    { goal: ['coins', 120], limit: 90, cfg: D(21, .28, 36, 17, 23), stars: [['health', 50], ['health', 80]] },
-    { goal: ['turns', 6], maxHits: 3, cfg: D(22, .28, 36, 17, 23), stars: [['mice', 15], ['mice', 30]] },
-    { goal: ['dist', 1500], maxHits: 1, cfg: D(22, .3, 34, 17, 23), stars: [['coins', 50], ['hits', 0]] }
+    { goal: ['dist', 1200], cfg: D(20, .25, 34, 3, 40), stars: [['hits', 3], ['hits', 1]] },
+    { goal: ['mice', 30], cfg: D(21, .25, 34, 3, 40), stars: [['time', 70], ['time', 50]] },
+    { goal: ['coins', 120], limit: 90, cfg: D(21, .28, 36, 4, 50), stars: [['hits', 3], ['hits', 1]] },
+    { goal: ['turns', 6], maxHits: 3, cfg: D(22, .28, 36, 4, 50), stars: [['mice', 15], ['mice', 30]] },
+    { goal: ['dist', 1500], maxHits: 1, cfg: D(22, .3, 34, 4, 60), stars: [['coins', 50], ['hits', 0]] }
   ]
 ];
+const HITOS = [200, 500, 1000, 1500, 2000]; // después, cada 1000 m
+const hitoCoins = m => m <= 2000 ? [5, 10, 15, 20, 25][HITOS.indexOf(m)] : 30;
+const FRASES = ['Panela solo quería saludar.', 'Tinto no perdió. Se dejó alcanzar.', 'Panela ganó. Tinto dice que no estaba corriendo.', 'Demasiado cariño.',
+  'Tinto exige la revancha.', 'Esto no pasó.', 'Panela está feliz. Tinto, menos.'];
+const SARD_MAX = 5;
 const PER = 5;
 const firstBonus = (w, l) => 20 + 5 * (w * PER + l); // 20…90 monedas la primera vez
 const STAR_COINS = 10; // por cada estrella nueva
@@ -185,9 +192,12 @@ export function install(game) {
   /* ---------- Guardado ---------- */
   const KEY = 'catRunSave';
   const rawSet = store.set.bind(store);
-  const save = Object.assign({ v: 1, wallet: 0, stars: [], owned: [], seenHelp: false, daily: null, gift: { day: '', streak: 0 }, runs: 0 },
+  const save = Object.assign({ v: 2, wallet: 0, stars: [], owned: [], seenHelp: false, daily: null, gift: { day: '', streak: 0 }, runs: 0, sard: 2, rec: {}, licks: 0, lastW: 0, lastFrase: -1 },
     store.get(KEY, null) || {});
+  if (save.v < 2) { save.v = 2; save.sard = 2; save.rec = {}; save.licks = 0; } // partidas guardadas con la versión anterior
   save.wallet = Math.max(0, Math.floor(+save.wallet || 0));
+  save.sard = clamp(Math.floor(+save.sard || 0), 0, SARD_MAX);
+  if (!save.rec || typeof save.rec !== 'object') save.rec = {};
   if (!Array.isArray(save.stars)) save.stars = [];
   if (!Array.isArray(save.owned)) save.owned = [];
   if (!save.gift || typeof save.gift !== 'object') save.gift = { day: '', streak: 0 };
@@ -239,19 +249,15 @@ export function install(game) {
   const STARS = {
     hits: { t: v => v ? `Choca máximo ${times(v)}` : 'No choques ni una vez', ok: v => run.hits <= v },
     time: { t: v => `Termina en ${v} s o menos`, ok: v => S.time <= v },
-    health: { t: v => `Termina con ${v}% de vida o más`, ok: v => S.health >= v },
     coins: { t: v => `Junta ${v} monedas`, ok: v => S.coins >= v },
     mice: { t: v => `Atrapa ${v} ratones`, ok: v => S.mice >= v }
   };
   const goalText = d => GOALS[d.goal[0]].t(d.goal[1]) + (d.limit ? ` en ${d.limit} s` : '') + (d.maxHits != null ? ` chocando máximo ${times(d.maxHits)}` : '');
 
-  function applyCfg(o) {
-    restoreCfg();
-    cfgBackup = {};
-    for (const k in o) { cfgBackup[k] = cfg[k]; cfg[k] = Array.isArray(o[k]) ? [...o[k]] : o[k]; }
-  }
-  function restoreCfg() { if (cfgBackup) { Object.assign(cfg, cfgBackup); cfgBackup = null; } }
-  const newRun = (mode, w, l) => ({ mode, w, l, def: mode === 'level' ? LEVELS[w][l] : null, hits: 0, turns: 0, clean: null, done: false, fail: '', quit: '', banked: false });
+  // las reglas del nivel entran como capa 'level' de js/rules.js: no se copia ni se restaura nada a mano
+  function applyCfg(o) { game.rules.layer('level', o); cfgBackup = true; }
+  function restoreCfg() { if (cfgBackup) { game.rules.layer('level', null); cfgBackup = null; } }
+  const newRun = (mode, w, l) => ({ mode, w, l, def: mode === 'level' ? LEVELS[w][l] : null, hits: 0, turns: 0, clean: null, done: false, fail: '', quit: '', banked: false, offer: false, hito: 0, rescues: 0 });
 
   function play(mode, w = ui.w, l = 0) {
     w = clamp(w | 0, 0, worldsN() - 1); l |= 0;
@@ -264,6 +270,7 @@ export function install(game) {
     const wd = game.worlds[w];
     if (wd && game.world !== wd) game.setWorld(wd.id);
     if (run.def) applyCfg(run.def.cfg);
+    save.lastW = w;
     pending = true;
     try { game.start(); } finally { pending = false; }
     return true;
@@ -287,6 +294,14 @@ export function install(game) {
   game.ui.hud.append(root);
   const goalEl = el('div', '', '<div class="r"><span class="g"></span><span class="x"></span></div><div class="bar"><i></i></div>');
   goalEl.id = 'lvGoal'; goalEl.hidden = true;
+  // renglón de "próxima meta" bajo el marcador: lo más cercano entre récord, caneca e hito de distancia
+  const metaEl = el('div', 'pill', ''); metaEl.id = 'lvMeta'; metaEl.hidden = true;
+  metaEl.style.cssText = 'display:block;width:fit-content;margin:-6px auto 0;font-size:16px;opacity:.9';
+  game.ui.top.after(metaEl);
+  const sardPill = el('span', 'pill', ''); sardPill.id = 'lvSard'; sardPill.title = 'Sardinas: una paga la salida de la caneca';
+  game.ui.top.append(sardPill);
+  const drawSard = () => { sardPill.textContent = `🐟 ${save.sard}`; };
+  drawSard();
   game.ui.top.after(goalEl);
   const overExtra = el('div', 'lv-over');
   game.ui.over.querySelector('.box')?.append(overExtra);
@@ -368,11 +383,13 @@ export function install(game) {
         <div class="lv-stage"></div>
         <p class="lv-sub">Tinto no hizo nada. (Sí hizo.) Ahora Panela lo persigue por ${worldsN()} mundos.</p>
         <div>${wal()} &nbsp; <span class="lv-wal" style="border-color:#fff4;color:#fff">⭐ ${starTotal()}/${max}</span></div>
-        <button class="lv-btn pri" data-act="begin" data-primary>▶ Jugar</button>
+        <button class="lv-btn pri" data-act="begin" data-primary>▶ Correr</button>
         <div class="lv-row">
+          <button class="lv-btn" data-act="levels">🗺️ Niveles</button>
           <button class="lv-btn" data-act="shop">😺 Gatos</button>
           <button class="lv-btn" data-act="missions">🎯 Misiones${n ? `<span class="lv-badge">${n}</span>` : ''}</button>
         </div>
+        <p class="lv-sub" style="font-size:15px;opacity:.85">${realTop[0] ? `👑 Récord: ${realTop[0].s} puntos · ` : ''}🐟 ${save.sard} sardina${save.sard === 1 ? '' : 's'}</p>
         <button class="lv-btn sm" data-act="help">❓ Cómo se juega</button>
       </div>`;
     },
@@ -380,10 +397,12 @@ export function install(game) {
       scr.help.innerHTML = `<div class="lv-in">${head('Cómo se juega', ui.from === 'begin' ? 'home' : 'back')}
         <div class="lv-card"><div class="lv-keys">
           <b>← →</b><span>Cambia de carril (o toca un lado de la pantalla)</span>
-          <b>↑</b><span>Salta vallas, basura y alcantarillas (desliza arriba)</span>
-          <b>↓</b><span>Agáchate bajo la cinta (desliza abajo)</span>
+          <b>↑</b><span>Salta vallas, cajas y alcantarillas (desliza arriba)</span>
+          <b>↓</b><span>Agáchate bajo carros, cintas y canecas (desliza abajo)</span>
           <b>⬅ ➡</b><span>En un cruce, toca la flecha GIRAR para entrar a esa calle</span>
-          <b>🐭</b><span>Los ratones dan vida y alejan a Panela</span>
+          <b>🐕</b><span>Un tropiezo acerca a Panela; otro antes de que se aleje, y te alcanza. De frente contra algo macizo, te alcanza</span>
+          <b>🐭</b><span>Ratones y comida llenan el Bocado: lleno, te salva de una captura</span>
+          <b>🗑️</b><span>Pasa agachado por una caneca: Panela te pierde y, si te alcanza después, sales de ahí por una sardina</span>
           <b>🐾</b><span>Las monedas van a tu billetera: compra gatos</span>
           <b>⭐</b><span>Cada nivel da hasta 3 estrellas; con ellas abres mundos</span>
         </div></div>
@@ -522,13 +541,22 @@ export function install(game) {
   const ACT = {
     noop() {},
     home() { show('home'); },
-    begin() { if (!save.seenHelp) { ui.from = 'begin'; show('help'); } else show('map'); },
-    helpok() { save.seenHelp = true; persist(); show('map'); },
+    begin() { if (!save.seenHelp) { ui.from = 'begin'; show('help'); } else play('endless', clamp(save.lastW | 0, 0, worldsN() - 1)); }, // un toque y Tinto corre
+    helpok() { save.seenHelp = true; persist(); play('endless', 0); },
+    levels() { show('map'); },
+    rescue() { // salir de la caneca: cuesta una sardina, una vez por partida
+      if (!run || !game.canRescue() || save.sard <= 0) return;
+      save.sard--; persist(); drawSard();
+      run.done = false; run.offer = false; run.rescues++;
+      game.ui.over.classList.remove('lv-on');
+      if (!game.rescue()) { save.sard++; persist(); drawSard(); return; }
+      beep(500, .3, 'triangle', .08, 500);
+    },
     help() { ui.from = ui.cur; show('help'); },
     shop() { ui.from = ui.cur; ui.confirm = ''; show('shop'); },
     missions() { ui.from = ui.cur; show('missions'); },
     back() { show(ui.from === 'map' ? 'map' : 'home'); },
-    map: toMap,
+    map() { if (run && !run.banked && api.lastOver) bank(api.lastOver); toMap(); },
     tab(d) { ui.w = +d.w; ui.l = Math.max(0, firstTodo(ui.w)); preview(ui.w); RENDER.map(); },
     node(d, b) {
       const l = +d.l;
@@ -541,7 +569,7 @@ export function install(game) {
     endless() { play('endless', ui.w); },
     next() { const n = ui.res?.next; if (n) play('level', n.w, n.l); },
     retry() { const r = ui.res || run; play('level', r.w, r.l); },
-    again() { play('endless', run ? run.w : 0); },
+    again() { if (run && !run.banked) bank(api.lastOver); play('endless', run ? run.w : 0); },
     resume() { game.setPaused(false); },
     pretry() { abort('retry'); },
     quit() { abort(run?.mode === 'level' ? 'map' : ''); },
@@ -644,14 +672,39 @@ export function install(game) {
   });
   game.on('hit', () => { if (!run) return; run.hits++; if (run.clean == null) run.clean = S.dist; });
   game.on('turn', e => { if (run && e && e.dir) run.turns++; });
+  game.on('rescue', () => { if (run) { run.done = false; run.offer = false; } });
+  // próxima meta e hitos (solo modo infinito)
+  function nextHito() { for (const h of HITOS) if (h > run.hito) return h; return Math.floor(run.hito / 1000 + 1) * 1000; }
+  function drawMeta() {
+    if (!run || run.def || S.state !== 'play') { metaEl.hidden = true; return; }
+    const dist = S.dist, items = [];
+    const rec = save.rec[game.world?.id] || 0;
+    if (rec > dist && rec - dist < 400) items.push([rec - dist, `👑 tu récord en ${Math.ceil(rec - dist)} m`, 0]);
+    const cn = game.gen.nextCaneca - dist;
+    if (S.canecas < 1 && cn > 0 && cn < 400 && S.heat >= cfg.canecaMinHeat - 5) items.push([cn, `🗑️ caneca en ${Math.ceil(cn)} m`, 1]);
+    const h = nextHito();
+    items.push([h - dist, `🏁 ${h >= 1000 ? (h / 1000) + ' km' : h + ' m'} en ${Math.ceil(h - dist)} m`, 2]);
+    items.sort((a, b) => a[2] - b[2]);
+    const best = items.reduce((a, b) => b[0] < a[0] * .6 ? b : a); // el más cercano, salvo empate: manda la prioridad
+    if (metaEl.textContent !== best[1]) metaEl.textContent = best[1];
+    metaEl.hidden = false;
+  }
   game.on('update', () => {
-    if (!run?.def || run.done || S.state !== 'play') return;
+    if (!run || S.state !== 'play') return;
+    if (!run.def) { // modo infinito: hitos de distancia
+      const h = nextHito();
+      if (S.dist >= h) { run.hito = h; game.coins(hitoCoins(h), 'hito'); game.fx?.banner?.(h >= 1000 ? `¡${h / 1000} KM!` : `¡${h} m!`); beep(660, .12, 'triangle', .07, 300); }
+      return;
+    }
+    if (run.done) return;
     const d = run.def;
     drawGoal();
     if (GOALS[d.goal[0]].v() >= d.goal[1]) { run.done = true; game.end({ won: true }); }
-    else if (d.maxHits != null && run.hits > d.maxHits) { run.done = true; run.fail = 'hits'; game.end({ won: false }); }
-    else if (d.limit && S.time > d.limit) { run.done = true; run.fail = 'time'; game.end({ won: false }); }
+    else if (d.maxHits != null && run.hits > d.maxHits) { run.done = true; run.fail = 'hits'; game.end({ won: false, reason: 'choques' }); }
+    else if (d.limit && S.time > d.limit) { run.done = true; run.fail = 'time'; game.end({ won: false, reason: 'tiempo' }); }
   });
+  game.on('hud', drawMeta);
+  game.on('start', () => { metaEl.hidden = true; });
   game.on('pause', v => {
     const on = !!v && S.state === 'play';
     if (on) renderPause();
@@ -673,12 +726,28 @@ export function install(game) {
     renderRank();
   });
 
-  game.on('over', e => {
-    if (!run) run = newRun('endless', 0, 0);
+  // la frase de "casi": una sola, siempre con el número real; si nada está cerca, no se finge cercanía
+  function casi(e, recordBefore) {
+    const score = e.score, next = game.cats.find(c => !owns(c) && price(c) > 0);
+    if (recordBefore > 0 && score > recordBefore) return { txt: `¡Nuevo récord! <b>${score}</b> puntos`, record: true };
+    if (recordBefore > 0 && score >= .8 * recordBefore) return { txt: `Te faltaron <b>${recordBefore - score + 1}</b> puntos para tu récord` };
+    if (next && save.wallet + S.coins >= .8 * price(next) && save.wallet + S.coins < price(next)) return { txt: `Te faltan <b>${price(next) - save.wallet - S.coins} 🐾</b> para ${esc(next.name)}` };
+    const rec = save.rec[game.world?.id] || 0;
+    return { txt: `Corriste <b>${Math.floor(e.dist)} m</b>.${rec ? ` Tu mejor: ${Math.floor(rec)} m` : ''}` };
+  }
+  function frase(e) {
+    if (e.record) return `Tinto no hizo nada. <span>(Hizo ${e.score} puntos.)</span>`;
+    if (e.cause === 'cocodrilo') return 'El cocodrilo <span>no quería ser amigo.</span>';
+    let i; do i = Math.floor(Math.random() * (FRASES.length + 1)); while (i === save.lastFrase);
+    save.lastFrase = i;
+    const f = i === FRASES.length ? `Lametón <span>número ${save.licks}</span>.` : FRASES[i].replace(/(\S+\.)$/, '<span>$1</span>');
+    return f;
+  }
+  // cobra la partida (billetera, misiones, récords). Se difiere cuando se ofrece salir de la caneca.
+  function bank(e) {
     const r = run;
-    if (r.banked) return;
+    if (!r || r.banked) return r?.res;
     r.banked = true;
-    goalEl.hidden = true; pauseEl.hidden = true;
     const lvl = r.mode === 'level', won = lvl && !!e.won, coins = Math.max(0, Math.floor(S.coins));
     const res = { mode: r.mode, w: r.w, l: r.l, def: r.def, won, fail: r.fail, coins, stars: 0, newStars: 0, first: false, firstBonus: 0, conds: [false, false],
       val: lvl ? Math.min(r.def.goal[1], GOALS[r.def.goal[0]].v()) : 0, walletBefore: save.wallet, next: null, unlocked: null, worldUnlocked: null, complete: false, gateLeft: 0 };
@@ -704,40 +773,65 @@ export function install(game) {
     // billetera y misiones
     save.wallet += coins + res.firstBonus + res.newStars * STAR_COINS;
     save.runs++;
+    if (!won && e.cause !== 'cocodrilo' && e.cause !== 'tiempo' && e.cause !== 'choques') save.licks++;
     const add = { mice: S.mice, coins, dist: Math.floor(S.dist), turns: r.turns, runs: 1, wins: won ? 1 : 0, stars: res.newStars, clean: Math.floor(r.clean ?? S.dist) };
     for (const m of daily().m) { const M = MISSIONS[m.id]; if (M && !m.c) m.p = M.max ? Math.max(m.p, add[m.id] || 0) : m.p + (add[m.id] || 0); }
-    persist();
+    if (!lvl) { // récords del modo infinito: puntaje (tabla) y distancia por mundo; un récord nuevo da una sardina
+      const wid = game.world?.id || '';
+      if (S.dist > (save.rec[wid] || 0)) save.rec[wid] = Math.floor(S.dist);
+      myEntry = { n: (document.getElementById('name')?.value || '').trim(), s: e.score };
+      const before = realTop[0]?.s || 0;
+      realTop = [...realTop, myEntry].sort((a, b) => b.s - a.s).slice(0, 5);
+      rawSet('catRunTop', realTop);
+      res.record = e.score > before && before > 0;
+      if (res.record && save.sard < SARD_MAX) { save.sard++; res.sardina = true; }
+    }
+    persist(); drawSard();
     restoreCfg();
     api.last = res;
-
+    r.res = res;
+    return res;
+  }
+  game.on('over', e => {
+    if (!run) run = newRun('endless', 0, 0);
+    const r = run;
+    if (r.banked) return;
+    api.lastOver = e;
+    goalEl.hidden = true; pauseEl.hidden = true; metaEl.hidden = true;
+    const lvl = r.mode === 'level';
+    const recordBefore = realTop[0]?.s || 0;
+    // salir de la caneca: solo en modo infinito, con carga, con sardinas y una vez por partida (sin cuenta regresiva)
+    r.offer = !lvl && !!e.canRescue && !r.quit && save.sard > 0 && r.rescues === 0;
+    const res = r.offer ? null : bank(e);
     if (lvl) {
       game.ui.over.hidden = true; // el resultado de un nivel lo muestro yo
       if (r.quit === 'retry') return void play('level', r.w, r.l);
       if (r.quit === 'map') return toMap();
       ui.res = res;
       show('result');
-      ui.guard = performance.now() + 600; // que el salto de último momento no pulse el botón
-    } else {
-      if (r.quit === 'retry') { game.ui.over.hidden = true; return void play('endless', r.w); }
-      myEntry = { n: (document.getElementById('name')?.value || '').trim(), s: e.score };
-      realTop = [...realTop, myEntry].sort((a, b) => b.s - a.s).slice(0, 5);
-      rawSet('catRunTop', realTop);
-      renderRank();
-      const best = document.getElementById('best');
-      if (best) best.textContent = `${e.score} puntos${realTop[0] === myEntry ? ' · ¡nuevo récord!' : ''}`;
-      overExtra.innerHTML = `<p>+<b>${coins}</b> 🐾 a tu billetera · tienes <b class="lv-cnt">${save.wallet}</b> 🐾</p>
-        <button class="lv-btn pri" data-act="again" data-primary>↻ Otra vez</button>
-        <button class="lv-btn sm" data-act="map" data-back>🗺️ Mapa</button>`;
-      countUp(overExtra.querySelector('.lv-cnt'), res.walletBefore, save.wallet, 900);
-      game.ui.over.classList.add('lv-on');
-      ui.guard = performance.now() + 700;
+      ui.guard = performance.now() + 500;
+      return;
     }
+    if (r.quit === 'retry') { game.ui.over.hidden = true; return void play('endless', r.w); }
+    const coins = Math.max(0, Math.floor(S.coins)), c = casi(e, recordBefore);
+    renderRank();
+    const title = document.getElementById('overTitle'), best = document.getElementById('best');
+    if (title) title.innerHTML = frase({ ...e, record: c.record });
+    if (best) best.textContent = `${e.score} puntos${c.record ? ' · ¡nuevo récord!' : ''} · x${e.mult || 1}`;
+    overExtra.innerHTML = `<p class="lv-casi">${c.txt}</p>
+      <p>${r.offer ? `Llevas <b>${coins}</b> 🐾 en esta partida` : `+<b>${coins}</b> 🐾 a tu billetera · tienes <b class="lv-cnt">${save.wallet}</b> 🐾`}${res?.sardina ? ' · <b>+1 🐟</b>' : ''}</p>
+      ${r.offer ? `<button class="lv-btn pri gold" data-act="rescue">🗑️ Salir de la caneca (1 🐟)</button>` : ''}
+      <button class="lv-btn pri" data-act="again" data-primary>↻ Otra vez</button>
+      <button class="lv-btn sm" data-act="map" data-back>🗺️ Niveles</button>`;
+    if (res) countUp(overExtra.querySelector('.lv-cnt'), res.walletBefore, save.wallet, 900);
+    game.ui.over.classList.add('lv-on');
+    ui.guard = performance.now() + 500;
   });
   function isComplete() { for (let w = 0; w < worldsN(); w++) for (let l = 0; l < PER; l++) if (!st(w, l)) return false; return worldsN() > 0; }
 
   /* ---------- Arranque ---------- */
   const api = game.levels = {
-    LEVELS, GATE, MISSIONS, save, screen: '', last: null,
+    LEVELS, GATE, MISSIONS, HITOS, save, screen: '', last: null, lastOver: null,
     get run() { return run; }, get wallet() { return save.wallet; }, get top() { return realTop; },
     owns: id => owns(game.cats.find(c => c.id === id)), buy, play, show, toMap, starTotal, worldOpen, levelOpen, stars: st, goalText, daily, persist,
     setNow(fn) { now = fn || (() => new Date()); }

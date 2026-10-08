@@ -211,11 +211,12 @@ export function install(game) {
   /* ---------- Estado de la habilidad ---------- */
   const st = { cd: 0, cdMax: 1, act: 0, actMax: 1, lives: 0, flip: 0, swipe: 0, pulse: 0, smashed: 0 };
   let def = null, ab = null, undoPassive = [], undoActive = null, model = null, T = 0;
-  // cambia un ajuste y deja anotado cómo deshacerlo (exacto si nadie más lo tocó; si no, resta lo sumado)
+  // cambia una regla con un modificador con nombre (js/rules.js) y deja anotado cómo quitarlo
+  let bumpN = 0;
   function bump(key, d, list) {
-    const before = cfg[key], now = before + d;
-    cfg[key] = now;
-    list.push(() => { cfg[key] = cfg[key] === now ? before : cfg[key] - d; });
+    const id = `gato:${key}:${++bumpN}`;
+    game.rules.mod(id, { [key]: { add: d } });
+    list.push(() => game.rules.unmod(id));
   }
   function endActive() {
     const f = undoActive;
@@ -400,10 +401,9 @@ export function install(game) {
         if (st.act <= 0) return;
         knock(o);
         st.smashed++;
-        S.coins += 2;
+        game.coins(2, 'embestida');
         sfx(90, .2, 'square', .1, -40); sfx(1100, .08, 'square', .05);
         ring(0xffd23f, .5, 2.6, .3, .8);
-        game.hud();
         return false;
       }
     },
@@ -427,9 +427,9 @@ export function install(game) {
     sigilo: {
       use() {
         const list = [], u = game.cat.userData;
-        bump('gapMin', 3, list); bump('gapMax', 3, list);
+        bump('gapMax', 3, list);
         undoActive = () => { list.reverse().forEach(f => f()); if (S.state === 'play') ring(0x7b3fd1, 2, .4, .3, .6, true); };
-        S.health = Math.min(100, S.health + 10);
+        game.calm(); // Panela le pierde el rastro: se cierra la ventana de peligro
         if (u.gid) snapshot(decoyMat, .9, 0, .6);
         ring(0x7b3fd1, .4, 2.6, .4, .6);
         sfx(700, .4, 'sine', .06, -500);
@@ -444,10 +444,9 @@ export function install(game) {
       press() { sfx(st.lives ? 1200 : 200, .1, 'triangle', .05, st.lives ? 300 : -60); },
       status: () => ({ on: st.lives > 0, txt: '×' + st.lives }),
       damage(o) {
-        if (st.lives <= 0 || S.health - (o.dmg || 0) > 0) return;
+        if (st.lives <= 0 || !o.lethal) return; // solo cuando el golpe iba a ser captura
         st.lives--;
-        S.health = 50;
-        p.inv = 3; p.slow = .6;
+        game.calm(); game.invuln(3);
         if (o.fly) knock(o);
         snapshot(ghostMat, 1.3, 2.6, .7, true);
         ring(0xffd84a, .4, 4, .6, .3);

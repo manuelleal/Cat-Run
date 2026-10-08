@@ -2,7 +2,7 @@
 // Cada mundo trae arquitectura, calzada, fondo, clima y obstáculos propios. El contrato está en AGENTES.md.
 export function install(game) {
   const { THREE: T, scene, hemi, geo, part, mat, canvasTex, stripes, rand, pick, clamp,
-    BUILD, SPEC, VARIANTS, ROWS, addObstacle, spawn, HALF, DEPTH, S, p } = game;
+    BUILD, SPEC, VARIANTS, piece, addObstacle, spawn, HALF, DEPTH, S, p } = game;
   const { BOX, BALL, CAP, EAR, CYL, SPH, CONE, DISC, RING } = geo;
   const PI = Math.PI, TAU = PI * 2;
   const mod = (a, n) => ((a % n) + n) % n;
@@ -244,7 +244,8 @@ export function install(game) {
   /* ================= Obstáculos ================= */
   const pon = (seg, type, s, lane) => { const o = addObstacle(seg, type, s, lane); o.seg = seg; o.ph = rand(0, TAU); o.x0 = o.x; return o; };
   const pieza = (o, type, x = 0, y = 0, z = 0) => { const m = spawn(type); m.position.set(x, y, z); o.mesh.add(m); return m; };
-  const fila = (id, make) => ROWS.push({ id, weight: 0, make }); // peso 0: solo aparece en el mundo que la pida en rowWeights
+  // cada pieza declara su celda y su dureza en SPEC; el generador del núcleo decide la forma de la fila. El peso por mundo va en `pieces`.
+  const fila = (type, make) => piece(type, { make });
   const cerca = (o, d) => o.seg === game.cur && o.s - p.s < d && o.s > 9;
   const SUELTA = { shadow: false }; // piezas sueltas que se cuelgan de un obstáculo
 
@@ -257,7 +258,7 @@ export function install(game) {
     part(CONE, 0xe8e0d0, .25, .45, .3, 0, .68, .4, g).rotation.x = -.6;
     for (const x of [-.12, .12]) part(BOX, 0xf2a020, .05, .25, .05, x, .12, 0, g);
   };
-  SPEC.gallina = { hw: .9, hl: .8, y0: 0, y1: 1.4, collect: true, food: 8 }; // un gato no choca con una gallina: se la come
+  SPEC.gallina = { hw: .9, hl: .8, y0: 0, y1: 1.4, collect: true, food: true, shadow: false }; // comida: solo sale en balcones y rutas con riesgo
   const picotea = (o, t) => {
     const m = o.mesh, k = t * 5 + o.ph, u = t * .9 + o.ph;
     o.x = o.x0 + Math.sin(u) * .7; m.position.x = o.x;
@@ -280,7 +281,7 @@ export function install(game) {
       for (let k = 0; k < 4; k++) part(BOX, k % 2 ? 0xc0392b : 0x7a1f1f, .18, .18, .18, x + rand(-.12, .12), 1.8, rand(-.15, .15), g);
     }
   };
-  SPEC.burro = { hw: 1.2, hl: .6, y0: 0, y1: 2.4, dmg: 20 };
+  SPEC.burro = { hw: 1.2, hl: .6, y0: 0, y1: 2.4, cell: 'M', move: true };
   BUILD.pataBurro = g => { part(CAP, 0x8d8378, .2, .42, .2, 0, -.45, 0, g); part(BOX, 0x3a342e, .22, .16, .26, 0, -.92, 0, g); };
   const camina = (o, t) => {
     const u = t * o.w + o.ph, m = o.mesh;
@@ -302,13 +303,13 @@ export function install(game) {
     for (const x of [-.85, .85]) { part(BOX, 0xfff2a8, .4, .25, .1, x, 1, -4.52, g); part(BOX, 0xff3030, .4, .2, .1, x, 1, 4.52, g); }
     for (const x of [-1.25, 1.25]) for (const z of [-3, 3]) part(CYL, 0x15151a, 1.1, .3, 1.1, x, .55, z, g).rotation.z = PI / 2;
   };
-  SPEC.chiva = { hw: 1.25, hl: 4.5, y0: .6, y1: 4.2, dmg: 30 }; // agachado se pasa por debajo
+  SPEC.chiva = { hw: 1.25, hl: 4.5, y0: .6, y1: 4.2, cell: 'A', hard: true, long: true }; // agachado se pasa por debajo
   const tiembla = (o, t) => { o.mesh.position.y = Math.sin(t * 28 + o.ph) * .02; o.mesh.rotation.z = Math.sin(t * 3 + o.ph) * .01; };
   BUILD.balon = g => {
     part(SPH, 0xffffff, .8, .8, .8, 0, 0, 0, g);
     for (const [x, y, z] of [[.3, .2, .2], [-.3, .1, -.25], [0, -.35, .15], [.1, .3, -.3], [-.2, -.2, .3], [.25, -.2, -.3]]) part(SPH, 0x1a1a1f, .3, .3, .3, x, y, z, g);
   };
-  SPEC.balon = { hw: .45, hl: .45, y0: 0, y1: .8, dmg: 8, fly: true };
+  SPEC.balon = { hw: .45, hl: .45, y0: 0, y1: .8, cell: 'M', move: true, fly: true };
   // pelota que cruza la calle rebotando: su caja de choque sube y baja con ella
   const rebota = (r, alto, vx) => (o, t, dt) => {
     const u = (t * .9 + o.ph) % 1, y = r + 4 * alto * u * (1 - u), m = o.mesh;
@@ -320,7 +321,7 @@ export function install(game) {
     for (const x of [-4.6, 4.6]) part(BOX, 0x6b4a2f, .16, 3, .16, x, 1.5, 0, g);
     part(BOX, 0xe8e0d0, 9.2, .04, .04, 0, 2.85, 0, g);
   };
-  SPEC.tendedero = { hw: 5, hl: .2, y0: 1.15, y1: 3, dmg: 15, fly: true };
+  SPEC.tendedero = { hw: 5, hl: .2, y0: 1.15, y1: 3, cell: 'A', full: true, fly: true };
   BUILD.ropa = (g, v) => { // cuelga de y = 0 hacia abajo
     const cols = [0xe8456b, 0x2f6fd0, 0xffffff, 0xf2b632, 0x2f8f6b, 0xd94fd0, 0xff7a3a];
     for (let x = -4, i = v; x < 3.4; i++) {
@@ -332,22 +333,23 @@ export function install(game) {
   VARIANTS.ropa = 3;
   SPEC.ropa = SPEC.pataBurro = SUELTA;
 
-  fila('gallinas', (seg, s, lanes) => lanes.slice(0, pick([2, 3, 3])).forEach(l => {
-    const o = pon(seg, 'gallina', s + rand(-1, 1), l + rand(-.15, .15));
-    o.mesh.rotation.order = 'YXZ'; o.animate = picotea;
-  }));
+  fila('gallina', (seg, s, lane, y = 0) => { // comida (no entra en los patrones): la coloca el núcleo en balcones
+    const o = addObstacle(seg, 'gallina', s, lane, y); o.ph = rand(0, TAU); o.x0 = o.x;
+    o.mesh.rotation.order = 'YXZ'; o.animate = picotea; return o;
+  });
   fila('burro', (seg, s) => {
     const o = pon(seg, 'burro', s, 0);
     o.w = rand(.35, .55);
     o.patas = [[-.28, -.6], [.28, -.6], [.28, .6], [-.28, .6]].map(([x, z]) => pieza(o, 'pataBurro', x, 1, z));
-    o.animate = camina;
+    o.animate = camina; return o;
   });
-  fila('chiva', (seg, s, lanes) => { pon(seg, 'chiva', s + 2, lanes[2]).animate = tiembla; });
-  fila('balon', (seg, s) => { pon(seg, 'balon', s, 0).animate = rebota(.4, 2.4, .8); });
+  fila('chiva', (seg, s, lane) => { const o = pon(seg, 'chiva', s, lane); o.animate = tiembla; return o; });
+  fila('balon', (seg, s) => { const o = pon(seg, 'balon', s, 0); o.animate = rebota(.4, 2.4, .8); return o; });
   fila('tendedero', (seg, s) => {
     const o = pon(seg, 'tendedero', s, 0);
     o.ropa = pieza(o, 'ropa', 0, 2.85, 0);
     o.animate = (o, t) => { o.ropa.rotation.x = Math.sin(t * 2.2 + o.ph) * .22; };
+    return o;
   });
 
   // ---------- Costa ----------
@@ -360,7 +362,7 @@ export function install(game) {
       for (let k = 0; k < 3; k++) part(BOX, 0xb5381f, .4, .07, .07, x * .65, .2, -.1 + k * .2, g).rotation.z = -x * .6;
     }
   };
-  SPEC.cangrejo = { hw: .9, hl: .8, y0: 0, y1: 1.2, collect: true, food: 6 }; // también es comida
+  SPEC.cangrejo = { hw: .9, hl: .8, y0: 0, y1: 1.2, collect: true, food: true, shadow: false }; // comida de los balcones de la costa
   const escurre = (o, t) => {
     const m = o.mesh;
     o.x = clamp(o.x0 + Math.sin(t * 2.4 + o.ph) * 1.7, -4, 4); m.position.x = o.x;
@@ -370,7 +372,7 @@ export function install(game) {
     part(SPH, 0x6b4a2f, .75, .7, .75, 0, 0, 0, g); part(SPH, 0x8a6a40, .3, .3, .1, 0, 0, -.35, g);
     for (const x of [-.12, .12]) part(SPH, 0x2a1a0f, .1, .1, .08, x, .08, -.37, g);
   };
-  SPEC.coco = { hw: .42, hl: .42, y0: 0, y1: .78, dmg: 12, fly: true };
+  SPEC.coco = { hw: .42, hl: .42, y0: 0, y1: .78, cell: 'S', fly: true, minTier: 1 }; // rueda hacia el gato: no en el escalón 0
   // viene rodando hacia el gato cuando lo tiene cerca
   const rueda = (vel, dist) => (o, t, dt) => {
     if (!cerca(o, dist)) return;
@@ -385,7 +387,7 @@ export function install(game) {
     part(SPH, 0xff7a3a, .4, .4, .4, -.7, .2, .4, g);
   };
   VARIANTS.sombrilla = 3;
-  SPEC.sombrilla = { hw: 1.2, hl: 1.1, y0: 0, y1: 3, dmg: 20 };
+  SPEC.sombrilla = { hw: 1.2, hl: 1.1, y0: 0, y1: 3, cell: 'X' };
   BUILD.lancha = (g, v) => {
     const c = [0x2f6fd0, 0xe8456b, 0x1fa7a0][v % 3];
     part(BOX, c, 2.2, .9, 5, 0, .85, .4, g);
@@ -397,12 +399,12 @@ export function install(game) {
     part(SPH, 0xf2f2f2, 1.2, .5, 1.4, .2, 1.5, .8, g); // atarraya
   };
   VARIANTS.lancha = 3;
-  SPEC.lancha = { hw: 1.2, hl: 3, y0: 0, y1: 2.2, dmg: 25 };
+  SPEC.lancha = { hw: 1.2, hl: 3, y0: 0, y1: 2.2, cell: 'X', hard: true };
   BUILD.red = g => { // malla de voleibol: por debajo
     for (const x of [-4.6, 4.6]) { part(CYL, 0xf2f2f2, .16, 2.9, .16, x, 1.45, 0, g); part(SPH, 0xe8456b, .3, .3, .3, x, 2.95, 0, g); }
     part(BOX, netMat, 9.1, 1.6, .03, 0, 2, 0, g);
   };
-  SPEC.red = { hw: 5, hl: .2, y0: 1.15, y1: 3, dmg: 15, fly: true, shadow: false };
+  SPEC.red = { hw: 5, hl: .2, y0: 1.15, y1: 3, cell: 'A', full: true, fly: true, shadow: false };
   BUILD.surf = (g, v) => {
     const c = [0xff7a3a, 0x1fa7a0, 0xf2e24a][v % 3], b = new T.Group();
     b.rotation.set(-.12, 0, rand(-.1, .1)); g.add(b);
@@ -411,7 +413,7 @@ export function install(game) {
     part(SPH, 0xead7a4, 1.1, .3, .9, 0, .05, 0, g);
   };
   VARIANTS.surf = 3;
-  SPEC.surf = { hw: .5, hl: .3, y0: 0, y1: 2.8, dmg: 18, fly: true };
+  SPEC.surf = { hw: .5, hl: .3, y0: 0, y1: 2.8, cell: 'X', fly: true };
   BUILD.castillo = g => {
     const A = 0xe3c88a, B = 0xd2b574;
     part(BOX, A, 1.8, .5, 1.8, 0, .25, 0, g); part(BOX, B, 1.1, .4, 1.1, 0, .7, 0, g);
@@ -419,44 +421,39 @@ export function install(game) {
     part(BOX, 0x6b4a2f, .04, .5, .04, 0, 1.1, 0, g); part(BOX, 0xe8456b, .3, .18, .03, .16, 1.26, 0, g);
     part(SPH, 0x2f6fd0, .3, .3, .3, 1.1, .15, .9, g); part(BOX, 0xf2b632, .1, .1, .5, -1.1, .08, .8, g);
   };
-  SPEC.castillo = { hw: 1, hl: 1, y0: 0, y1: 1, dmg: 12, fly: true };
+  SPEC.castillo = { hw: 1, hl: 1, y0: 0, y1: 1, cell: 'S', fly: true };
   BUILD.pelota = g => {
     part(SPH, 0xffffff, 1, 1, 1, 0, 0, 0, g);
     [0xe8456b, 0x2f6fd0, 0xf2b632].forEach((c, i) => part(SPH, c, 1.03, 1.03, .3, 0, 0, 0, g).rotation.y = i * PI / 3);
   };
-  SPEC.pelota = { hw: .55, hl: .55, y0: 0, y1: 1, dmg: 8, fly: true };
+  SPEC.pelota = { hw: .55, hl: .55, y0: 0, y1: 1, cell: 'M', move: true, fly: true };
   BUILD.gaviota = g => { // viene de frente: mira hacia +Z
     part(SPH, 0xffffff, .45, .4, 1, 0, 0, 0, g); part(SPH, 0xffffff, .32, .32, .36, 0, .12, .55, g);
     part(CONE, 0xf2a020, .12, .3, .12, 0, .1, .82, g).rotation.x = PI / 2;
     for (const x of [-.1, .1]) part(SPH, 0x111111, .06, .06, .06, x, .2, .68, g);
     part(BOX, 0xcfd3da, .3, .05, .4, 0, 0, -.6, g);
   };
-  SPEC.gaviota = { hw: .9, hl: .5, y0: 1.05, y1: 1.95, dmg: 15, fly: true };
+  SPEC.gaviota = { hw: .9, hl: .5, y0: 1.05, y1: 1.95, cell: 'A', fly: true, minTier: 2 }; // viene de frente: no antes del escalón 2
   const planea = (o, t, dt) => {
     o.alas.scale.y = Math.sin(t * 11 + o.ph) * 1.5;
     o.mesh.position.y = 1.5 + Math.sin(t * 3 + o.ph) * .08;
     if (cerca(o, 50)) { o.s -= 9 * dt; o.mesh.position.z = -o.s; }
   };
 
-  fila('cangrejos', (seg, s, lanes) => lanes.slice(0, pick([2, 3, 3])).forEach((l, i) => { pon(seg, 'cangrejo', s + i * 1.6, l).animate = escurre; }));
-  fila('cocos', (seg, s, lanes) => lanes.slice(0, pick([1, 2, 3])).forEach((l, i) => {
-    const o = pon(seg, 'coco', s + i * 5, l);
-    o.mesh.position.y = .37; o.animate = rueda(6, 40);
-  }));
-  fila('sombrilla', (seg, s, lanes) => lanes.slice(0, pick([1, 2])).forEach(l => {
-    pon(seg, 'sombrilla', s, l).animate = (o, t) => { o.mesh.rotation.z = Math.sin(t * 1.6 + o.ph) * .035; };
-  }));
-  fila('lancha', (seg, s, lanes) => { pon(seg, 'lancha', s + 1.5, lanes[2]); });
-  fila('red', (seg, s) => { pon(seg, 'red', s, 0).animate = (o, t) => { o.mesh.rotation.x = Math.sin(t * 1.8 + o.ph) * .04; }; });
-  fila('surf', (seg, s, lanes) => lanes.slice(0, 2).forEach((l, i) => { pon(seg, 'surf', s + i * .6, l); }));
-  fila('castillo', (seg, s, lanes) => lanes.slice(0, pick([2, 3, 3])).forEach(l => { pon(seg, 'castillo', s, l); }));
-  fila('pelota', (seg, s) => { pon(seg, 'pelota', s, 0).animate = rebota(.5, 2.9, 1.1); });
-  fila('gaviota', (seg, s, lanes) => lanes.slice(0, pick([1, 2])).forEach((l, i) => {
-    const o = pon(seg, 'gaviota', s + i * 7, l);
+  fila('cangrejo', (seg, s, lane, y = 0) => { const o = addObstacle(seg, 'cangrejo', s, lane, y); o.ph = rand(0, TAU); o.x0 = o.x; o.seg = seg; o.animate = y > 0 ? null : escurre; return o; });
+  fila('coco', (seg, s, lane) => { const o = pon(seg, 'coco', s, lane); o.mesh.position.y = .37; o.animate = rueda(6, 40); return o; });
+  fila('sombrilla', (seg, s, lane) => { const o = pon(seg, 'sombrilla', s, lane); o.animate = (o, t) => { o.mesh.rotation.z = Math.sin(t * 1.6 + o.ph) * .035; }; return o; });
+  fila('lancha', (seg, s, lane) => pon(seg, 'lancha', s, lane));
+  fila('red', (seg, s) => { const o = pon(seg, 'red', s, 0); o.animate = (o, t) => { o.mesh.rotation.x = Math.sin(t * 1.8 + o.ph) * .04; }; return o; });
+  fila('surf', (seg, s, lane) => pon(seg, 'surf', s, lane));
+  fila('castillo', (seg, s, lane) => pon(seg, 'castillo', s, lane));
+  fila('pelota', (seg, s) => { const o = pon(seg, 'pelota', s, 0); o.animate = rebota(.5, 2.9, 1.1); return o; });
+  fila('gaviota', (seg, s, lane) => {
+    const o = pon(seg, 'gaviota', s, lane);
     o.mesh.position.y = 1.5;
     o.alas = new T.Mesh(aveGeo, alaBlanca); o.alas.scale.set(1.6, 1, 1.5); o.mesh.add(o.alas);
-    o.animate = planea;
-  }));
+    o.animate = planea; return o;
+  });
 
   // ---------- Neón ----------
   BUILD.moto = g => { // viene de frente con la farola encendida
@@ -468,7 +465,7 @@ export function install(game) {
     part(SPH, 0xf2f2f2, .36, .36, .38, 0, 1.82, .08, g); glow(BOX, 0x39e6ff, .3, .1, .06, 0, 1.82, .27, g);
     part(BOX, 0xff7a1f, .6, .55, .55, 0, 1.25, -.72, g); glow(BOX, 0xff3ec8, .5, .06, .02, 0, 1.25, -1, g); // caja del domicilio
   };
-  SPEC.moto = { hw: .55, hl: 1.1, y0: 0, y1: 2, dmg: 30 };
+  SPEC.moto = { hw: .55, hl: 1.1, y0: 0, y1: 2, cell: 'X', hard: true, minTier: 2 }; // viene de frente y es dura: no antes del escalón 2
   const acelera = (o, t, dt) => {
     o.mesh.rotation.z = Math.sin(t * 3 + o.ph) * .08;
     if (cerca(o, 45)) { o.s -= 11 * dt; o.mesh.position.z = -o.s; }
@@ -481,7 +478,7 @@ export function install(game) {
     }
     part(BOX, 0x15151a, .3, .2, .3, 0, -.2, 0, g); glow(BOX, 0x39e6ff, .5, .04, .5, 0, -.12, 0, g);
   };
-  SPEC.dron = { hw: .85, hl: .6, y0: 1.05, y1: 2.05, dmg: 20, fly: true };
+  SPEC.dron = { hw: .85, hl: .6, y0: 1.05, y1: 2.05, cell: 'M', move: true, fly: true };
   // dos juegos de hélices cruzados que se alternan cada cuadro: parece que giran y cuesta una sola malla
   const helice = lado => g => { for (const x of [-.65, .65]) for (const z of [-.65, .65]) part(BOX, 0xcfd3da, lado ? .7 : .08, .02, lado ? .08 : .7, x, .2, z, g); };
   BUILD.heliceA = helice(1); BUILD.heliceB = helice(0);
@@ -497,7 +494,7 @@ export function install(game) {
     part(BOX, 0x333842, .25, 1.2, .25, 4.7, .6, 0, g);
   };
   BUILD.pluma = g => { part(BOX, franjas, 9.4, .24, .14, 4.7, 0, 0, g); part(BOX, 0x333842, .7, .4, .3, -.3, 0, 0, g); };
-  SPEC.barrera = { hw: 5, hl: .25, y0: .95, y1: 1.5, dmg: 20 };
+  SPEC.barrera = { hw: 5, hl: .25, y0: .95, y1: 1.5, cell: 'T', full: true, timed: true };
   // talanquera que sube y baja: solo choca cuando está abajo
   const sube = (o, t) => {
     const a = clamp(Math.sin(t * 1.9 + o.ph) * 1.5 + .35, 0, 1) * 1.3, baja = a < .22;
@@ -509,7 +506,7 @@ export function install(game) {
   };
   BUILD.rayoBajo = g => { glow(BOX, 0x4dff9a, 9, .12, .12, 0, .32, 0, g); glow(BOX, 0x4dff9a, 9, .06, .06, 0, .12, 0, g); };
   BUILD.rayoAlto = g => { for (const y of [1.25, 1.75, 2.25]) glow(BOX, 0xff3355, 9, .1, .1, 0, y, 0, g); };
-  SPEC.laser = { hw: 5, hl: .2, y0: 0, y1: .55, dmg: 20, shadow: false };
+  SPEC.laser = { hw: 5, hl: .2, y0: 0, y1: .55, cell: 'T', full: true, timed: true, shadow: false };
   // rayo verde abajo (saltar) y rojo arriba (deslizarse) se turnan; parpadea antes de cambiar
   const alterna = (o, t) => {
     const u = (t * .5 + o.ph) % 1, bajo = u < .5, on = u % .5 < .4 || Math.floor(t * 14) % 2 === 0;
@@ -521,7 +518,7 @@ export function install(game) {
     part(BOX, 0x15151a, 2.6, .08, .08, -1.6, .08, .3, g).rotation.y = .5;
     glow(BOX, 0xfff36a, .16, .16, .16, -.5, .12, -.1, g);
   };
-  SPEC.charco = { hw: 2, hl: 1.1, y0: -1, y1: .2, dmg: 20, shadow: false };
+  SPEC.charco = { hw: 2.4, hl: 1.1, y0: -1, y1: .2, cell: 'S', lanes: 2, shadow: false }; // charco de dos carriles: se salta
   BUILD.chispa = g => {
     for (let k = 0; k < 3; k++) glow(BOX, 0xfff36a, .9, .06, .06, 0, 0, 0, g).rotation.set(k, k * 2.1, k * 1.3);
     glow(BOX, 0x8fe9ff, .5, .05, .05, .2, .2, 0, g).rotation.z = 1;
@@ -539,35 +536,34 @@ export function install(game) {
   };
   SPEC.heliceA = SPEC.heliceB = SPEC.pluma = SPEC.rayoBajo = SPEC.rayoAlto = SPEC.chispa = SUELTA;
 
-  fila('motos', (seg, s, lanes) => lanes.slice(0, pick([1, 2, 2])).forEach((l, i) => {
-    const o = pon(seg, 'moto', s + i * 8, l);
+  fila('moto', (seg, s, lane) => {
+    const o = pon(seg, 'moto', s, lane);
     part(DISC, hazMat, 1.1, 1, 2.6, 0, .05, 3.2, o.mesh); // charco de luz de la farola
-    o.animate = acelera;
-  }));
+    o.animate = acelera; return o;
+  });
   fila('dron', (seg, s) => {
-    const n = pick([1, 2]);
-    for (let i = 0; i < n; i++) {
-      const o = pon(seg, 'dron', s + i * 7, 0);
-      o.mesh.position.y = 1.55; o.w = rand(1, 1.5) * (i ? -1 : 1);
-      o.hA = pieza(o, 'heliceA'); o.hB = pieza(o, 'heliceB');
-      o.animate = patrulla;
-    }
+    const o = pon(seg, 'dron', s, 0);
+    o.mesh.position.y = 1.55; o.w = rand(1, 1.5) * pick([-1, 1]);
+    o.hA = pieza(o, 'heliceA'); o.hB = pieza(o, 'heliceB');
+    o.animate = patrulla; return o;
   });
   fila('barrera', (seg, s) => {
     const o = pon(seg, 'barrera', s, 0);
-    o.pluma = pieza(o, 'pluma', -4.7, 1.2, 0); o.animate = sube;
+    o.pluma = pieza(o, 'pluma', -4.7, 1.2, 0); o.animate = sube; return o;
   });
   fila('laser', (seg, s) => {
     const o = pon(seg, 'laser', s, 0);
-    o.bajo = pieza(o, 'rayoBajo'); o.alto = pieza(o, 'rayoAlto'); o.animate = alterna;
+    o.bajo = pieza(o, 'rayoBajo'); o.alto = pieza(o, 'rayoAlto'); o.animate = alterna; return o;
   });
-  fila('charco', (seg, s) => {
-    const o = pon(seg, 'charco', s, pick([-.5, .5]));
-    o.chispa = pieza(o, 'chispa', 0, .4, 0); o.animate = chisporrotea;
+  fila('charco', (seg, s, lane) => {
+    const o = pon(seg, 'charco', s, lane);
+    o.chispa = pieza(o, 'chispa', 0, .4, 0); o.animate = chisporrotea; return o;
   });
-  fila('zigzag', (seg, s, lanes) => {
-    const o = pon(seg, 'carro', s, lanes[0]);
-    o.dir = lanes[0] ? -lanes[0] : pick([-1, 1]); o.animate = culebrea;
+  SPEC.zigzag = { ...SPEC.carro, cell: 'M', move: true, hard: false }; // carro que cambia de carril: móvil, nunca duro
+  BUILD.zigzag = BUILD.carro; VARIANTS.zigzag = 3;
+  fila('zigzag', (seg, s) => {
+    const o = pon(seg, 'zigzag', s, pick([-1, 1]));
+    o.dir = -Math.sign(o.x) || pick([-1, 1]); o.animate = culebrea; return o;
   });
 
   /* ================= Mundo 1 · Pueblo Colonial ================= */
@@ -577,8 +573,10 @@ export function install(game) {
     sky: ['#2f7fe0', '#9fd0f7', '#f7e6c4'], fog: 0xf3e2c2, fogRange: [60, 175], hemi: [0xd6ebff, 0x9a7a5a, 2.1], sun: [0xffe6b8, 2.5],
     tints: [0xfdf8ec, 0xfdf8ec, 0xfaf0d8, 0xf6e3b0, 0xf3d0b0, 0xe4eef2], zocalos: [0x2f7a4a, 0x2f5fa8, 0xb5482f, 0x7a4a2a, 0xd9a520, 0x8a2f4a],
     roof: 0xb5482f, sidewalk: 0xb9ab94, ground: 0x8fae6a, crossing: 0x8f8676, heights: [0],
-    rowWeights: { valla: 14, alcantarilla: 8, carro: 4, bus: 0, senora: 8, carreta: 10, caja: 12, cinta: 0, libre: 6,
-      gallinas: 16, burro: 10, chiva: 8, balon: 6, tendedero: 7 },
+    // primer mundo: los choques duros cuentan como tropiezo (para no espantar al que empieza); balcones en las fachadas; gallinas de comida arriba
+    rules: { hardCrash: false }, balconies: true, food: 'gallina',
+    pieces: { valla: 14, alcantarilla: 8, carro: 4, senora: 8, carreta: 10, caja: 8, basura: 4, bolsas: 6, contenedor: 4, poste: 5, zanja: 5, tuboc: 4, hidrante: 3, andamio: 7,
+      burro: 10, chiva: 8, balon: 6, tendedero: 7 },
     facade: fachadaPueblo, road: calzadaPueblo,
     side(st, seg, side, s0, end) {
       let s = s0;
@@ -589,6 +587,7 @@ export function install(game) {
         tint(part(BOX, F.pueblo[rows], DEPTH, h, w, side * (HALF + DEPTH / 2), h / 2, z, st), pick(pueblo.tints));
         tejado(st, tejas, side * (HALF + DEPTH / 2), z, DEPTH, w, h);
         part(BOX, pick(pueblo.zocalos), .16, 1.1, w, side * (HALF + .02), .75, z, st);
+        if (game.balconyAt(seg, side, s + w / 2)) { s += w; continue; } // aquí va un balcón por el que se corre: nada en el andén ni a 3 de alto
         if (r < .4) { // balcón volado con materas
           const bw = w * .6, bx = side * (HALF - 1);
           part(BOX, 0x5a3418, 1, .12, bw, side * (HALF - .5), 3.3, z, st);
@@ -608,6 +607,7 @@ export function install(game) {
         s += w;
       }
       for (let t = Math.max(s0, 12) + (side > 0 ? 11 : 0), i = 0; t < end - 4; t += 22, i++) { // guayacanes en flor
+        if (game.balconyAt(seg, side, t) || game.balconyAt(seg, side, t + 5)) continue;
         const c = [[0xf7c81e, 0xffdf5a], [0xf08ab0, 0xf7b4cf], [0x3f9a4f, 0x57b862]][(i + (side > 0)) % 3];
         part(CYL, 0x6b4a2f, .3, 2.2, .3, side * 5.3, 1.3, -t, st);
         part(SPH, c[0], 2.3, 2, 2.3, side * 5.3, 3.3, -t, st);
@@ -672,9 +672,9 @@ export function install(game) {
     id: 'playa', name: 'La Costa', emoji: '🏝️', desc: 'Malecón de tablas, cangrejos, cocos que ruedan y gaviotas', dificultad: 2,
     sky: ['#1493e0', '#86d8f5', '#e6fbf4'], fog: 0xdff4ee, fogRange: [75, 220], hemi: [0xdff6ff, 0xe8d6a0, 2.4], sun: [0xfff4d0, 2.9],
     tints: [0xffd166, 0xff8fa3, 0x7fdbda, 0x9ad0ff, 0xffffff, 0xffb37a, 0xb8f0a0], roof: PAJA,
-    sidewalk: 0xdcc79a, ground: 0xecd9a6, crossing: 0xb98d5a, heights: [0],
-    rowWeights: { valla: 0, alcantarilla: 4, carro: 0, bus: 0, senora: 6, carreta: 5, caja: 6, cinta: 0, libre: 2,
-      cangrejos: 16, cocos: 13, sombrilla: 10, lancha: 8, red: 9, surf: 11, castillo: 10, pelota: 7, gaviota: 12 },
+    sidewalk: 0xdcc79a, ground: 0xecd9a6, crossing: 0xb98d5a, heights: [0], food: 'cangrejo',
+    pieces: { alcantarilla: 4, senora: 6, carreta: 5, caja: 4, basura: 2, bolsas: 4, contenedor: 4, poste: 4, zanja: 4, tuboc: 3, hidrante: 3, andamio: 8,
+      coco: 13, sombrilla: 10, lancha: 8, red: 9, surf: 11, castillo: 10, pelota: 7, gaviota: 12 },
     facade: fachadaPlaya, road: calzadaPlaya,
     side(st, seg, side, s0, end) {
       let s = s0, k = side > 0 ? 1 : 0;
@@ -815,8 +815,8 @@ export function install(game) {
     id: 'neon', name: 'Ciudad Neón', emoji: '🌃', desc: 'Noche de lluvia: motos de frente, drones, láseres y relámpagos', dificultad: 3,
     sky: ['#04030d', '#150c33', '#43185a'], fog: 0x1b1038, fogRange: [38, 140], hemi: [0x8f9cff, 0x4a2c66, 1.7], sun: [0xff8ad8, 1.4],
     tints: [0x2a2f4a, 0x3a2a55, 0x1f3550, 0x40304a, 0x2b2b3a], roof: 0x8a1f6a, sidewalk: 0x3a3d52, ground: 0x0d0e16, crossing: 0x1c1d2a, heights: [0],
-    rowWeights: { valla: 6, alcantarilla: 8, carro: 8, bus: 8, senora: 0, carreta: 0, caja: 6, cinta: 4, libre: 0,
-      motos: 16, dron: 12, barrera: 10, laser: 12, charco: 10, zigzag: 10 },
+    pieces: { valla: 6, alcantarilla: 8, carro: 8, bus: 8, caja: 4, basura: 2, cinta: 4, bolsas: 5, contenedor: 8, poste: 4, zanja: 5, tuboc: 4, hidrante: 4, andamio: 7,
+      moto: 16, dron: 12, barrera: 10, laser: 12, charco: 10, zigzag: 10 },
     facade: fachadaNeon, road: calzadaNeon,
     side(st, seg, side, s0, end) {
       let s = s0;
