@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Tinto — Cat Run</title>
+<style>
+  :root { --text: #fff; --panel: rgba(14, 17, 32, .82); --accent: #ffb84f; --good: #5be39a; --bad: #ff4d5e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f5d9b8; color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  #top { display: flex; align-items: center; gap: 12px; padding: 14px 16px; font-weight: 800; font-size: 22px;
+    text-shadow: 0 2px 4px #000a; }
+  #bar { flex: 1; max-width: 300px; height: 22px; background: #0006; border: 2px solid #fff; border-radius: 12px; overflow: hidden; }
+  #fill { height: 100%; width: 100%; background: var(--good); transition: width .2s, background .2s; }
+  #top .sp { flex: 1; }
+  @media (max-width: 520px) { #bar { order: 9; flex-basis: 100%; max-width: none; height: 18px; } #top .sp { display: none; } #top { justify-content: space-between; gap: 8px; } }
+  #top { flex-wrap: wrap; }
+  .pill { background: #1c2740e0; border-radius: 12px; padding: 4px 12px; white-space: nowrap; }
+  .pill.gold { color: #ffd23f; }
+  #pause { pointer-events: auto; width: 44px; height: 44px; border-radius: 12px; border: 2px solid #fff; background: #1c2740e0;
+    color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
+  #pum { position: absolute; top: 42%; left: 0; right: 0; text-align: center; font-size: clamp(54px, 14vw, 120px); font-weight: 900;
+    font-style: italic; color: #ffd23f; -webkit-text-stroke: 3px #2a1a00; text-shadow: 5px 6px 0 #2a1a00; transform: rotate(-8deg) scale(0); }
+  #pum.on { animation: pum .6s ease-out; }
+  @keyframes pum { 0% { transform: rotate(-8deg) scale(.2); opacity: 1; } 30% { transform: rotate(-8deg) scale(1.15); opacity: 1; } 100% { transform: rotate(-8deg) scale(1); opacity: 0; } }
+  #danger { position: absolute; inset: 0; box-shadow: inset 0 0 140px 40px var(--bad); opacity: 0; transition: opacity .3s; }
+  .hint { position: absolute; top: 24%; font-size: clamp(30px, 7vw, 60px); font-weight: 900; color: #ffe14f;
+    text-shadow: 0 4px 0 #000, 0 0 18px #000; opacity: 0; text-align: center; line-height: 1; }
+  .hint small { display: block; font-size: .32em; color: #fff; margin-top: 6px; }
+  .hint.on { opacity: 1; animation: blink .4s steps(2) infinite; }
+  .hint.sel { opacity: 1; color: var(--good); animation: none; }
+  #hl { left: 3%; } #hr { right: 3%; }
+  /* las flechas de giro son botones: se tocan para meterse por la calle lateral */
+  button.hint { top: 42%; z-index: 6; padding: 12px 18px 10px; border-radius: 20px; border: 3px solid #ffe14f; background: #1c2740e0; pointer-events: none; cursor: pointer;
+    font-size: clamp(44px, 13vw, 68px); box-shadow: 0 5px 0 #000a, 0 0 22px #ffe14f; }
+  button.hint small { font-size: .34em; }
+  button.hint.on, button.hint.sel { pointer-events: auto; opacity: 1; animation: none; }
+  button.hint.sel { border-color: var(--good); background: #14402ae0; }
+  @keyframes blink { 50% { opacity: .4; } }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: #0e1120a8; padding: 16px; text-align: center; }
+  .overlay[hidden] { display: none; }
+  .box { background: var(--panel); border: 2px solid #fff3; border-radius: 22px; padding: 26px 28px; max-width: 560px; }
+  h1 { margin: 0 0 6px; font-size: clamp(36px, 8vw, 64px); letter-spacing: -1px; }
+  h1 span { color: var(--accent); }
+  .box p { margin: 8px 0; font-size: 18px; line-height: 1.45; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; text-align: left; margin: 16px auto; font-size: 17px; width: fit-content; }
+  .keys b { color: var(--accent); }
+  .go { margin-top: 12px; font-size: 22px; font-weight: 800; color: var(--good); animation: blink 1s steps(2) infinite; }
+  .themes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+  .themes button { pointer-events: auto; flex: 1; padding: 10px 6px; border-radius: 12px; border: 2px solid #fff4; background: #1c2740;
+    color: #fff; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .themes button[aria-pressed="true"] { border-color: var(--accent); background: #3a2f5c; }
+  #name, #share { pointer-events: auto; font: inherit; font-size: 18px; font-weight: 700; border-radius: 12px; padding: 10px 14px; }
+  #name { width: 100%; max-width: 260px; text-align: center; background: #0e1120; color: #fff; border: 2px solid #fff4; }
+  #share { display: block; margin: 10px auto 0; background: var(--good); color: #0e1120; border: 0; cursor: pointer; }
+  #rank { margin: 12px auto; padding: 0 0 0 28px; width: fit-content; min-width: 200px; text-align: left; font-size: 18px; font-weight: 700; }
+  #rank li { padding: 2px 0; }
+  #rank li.me { color: var(--accent); }
+  .big { font-size: 44px; font-weight: 900; color: var(--accent); margin: 6px 0; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+<style>
+  /* Tipografía de juego: Lilita One (gruesa, de arcade) para títulos, botones y números; Fredoka para leer */
+  :root { --f-title: 'Lilita One', 'Arial Black', Impact, sans-serif; --f-body: 'Fredoka', 'Segoe UI', system-ui, sans-serif; }
+  html, body, #lv, #lv *, .box p, .keys span, #name { font-family: var(--f-body); }
+  h1, h2, h3, button, .pill, .big, .go, .hint, #pum, #rank, .keys b, #lvGoal, #lvGoal *, #catAb, #catAb *, #fx, #fx *,
+  #lv h1, #lv h2, #lv h3, #lv button, #lv .lv-btn, #lv .lv-wal, #lv .lv-node, #lv .lv-badge, #lv b, #lv strong {
+    font-family: var(--f-title) !important; font-weight: 400 !important; font-synthesis: none; letter-spacing: .03em; }
+  h1, h2, #lv h1, #lv h2 { text-shadow: 0 .06em 0 #000a; }
+  .pill, #lvGoal { font-size: 22px; }
+  #pum { font-style: normal; -webkit-text-stroke: .05em #2a1206; paint-order: stroke fill; letter-spacing: .04em; }
+  #fx * { paint-order: stroke fill; }
+
+  /* Logotipo en tres capas: contorno oscuro con volumen (el texto), filo blanco (::before) y relleno en degradado (::after) */
+  .logo3d { position: relative; display: inline-block; isolation: isolate; margin: .16em .2em .24em !important; line-height: 1; letter-spacing: .03em;
+    font-size: clamp(56px, 19vw, 112px) !important; white-space: nowrap; color: #3a1708 !important; -webkit-text-stroke: .2em #3a1708;
+    text-shadow: 0 .07em 0 #3a1708, 0 .13em 0 #260e04, 0 .19em 0 #260e04, 0 .28em .12em #0009 !important; }
+  .logo3d::before, .logo3d::after { content: attr(data-text); position: absolute; left: 0; right: 0; top: 0; text-align: inherit; white-space: nowrap; text-shadow: none; }
+  .logo3d::before { z-index: 1; color: #fff; -webkit-text-stroke: .075em #fff; }
+  .logo3d::after { z-index: 2; -webkit-text-stroke: 0; color: transparent; -webkit-text-fill-color: transparent;
+    background: linear-gradient(#fffbd0 8%, #ffe14f 32%, #ffb21f 56%, #f0700c 78%, #c2410a 96%); -webkit-background-clip: text; background-clip: text; }
+  .logo-sub { display: inline-block; margin-top: -.5em; padding: .1em .7em .14em; border-radius: .5em; background: linear-gradient(#f0303f, #b3121f);
+    border: 3px solid #3a1708; box-shadow: 0 4px 0 #3a1708, 0 8px 10px #0006; color: #fff; font-family: var(--f-title); font-size: clamp(18px, 6vw, 30px);
+    letter-spacing: .14em; text-shadow: 0 2px 0 #3a1708; transform: rotate(-3deg); position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="danger"></div>
+  <div id="top">
+    <button id="pause" aria-label="Pausa">II</button>
+    <div id="bar"><div id="fill"></div></div>
+    <span class="sp"></span>
+    <span class="pill" id="dist">0 m</span>
+    <span class="pill">🐭 <span id="mice">0</span></span>
+    <span class="pill gold">🐾 <span id="coins">0</span></span>
+  </div>
+  <div id="pum"></div>
+  <button class="hint" id="hl" data-ui aria-label="Girar a la izquierda">⬅<small>GIRAR</small></button>
+  <button class="hint" id="hr" data-ui aria-label="Girar a la derecha">➡<small>GIRAR</small></button>
+
+  <div class="overlay" id="menu">
+    <div class="box">
+      <h1 class="logo3d" data-text="TINTO">TINTO</h1>
+      <p>Tinto no hizo nada. (Sí hizo.) Ahora Panela, la perra del pueblo, lo persigue.</p>
+      <div class="keys">
+        <b>← →</b><span>Cambiar de carril (o tocar un lado de la pantalla)</span>
+        <b>↑</b><span>Saltar vallas, basura y alcantarillas (deslizar arriba)</span>
+        <b>↓</b><span>Agacharse bajo la cinta policial (deslizar abajo)</span>
+        <b>⬅ ➡</b><span>En un cruce, toca la flecha GIRAR (o doble toque) para meterte por esa calle</span>
+        <b>🐭</b><span>Atrapa ratones: dan vida y alejan a Panela</span>
+        <b>🐾</b><span>Recoge monedas para sumar puntos</span>
+      </div>
+      <div class="themes" id="worlds"></div>
+      <div class="themes" id="catsel"></div>
+      <div class="go">Toca la pantalla o presiona ESPACIO</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <div class="box">
+      <h1 id="overTitle">¡Panela te <span>alcanzó</span>!</h1>
+      <div class="big" id="final"></div>
+      <p id="best"></p>
+      <input id="name" maxlength="12" placeholder="Escribe tu nombre" aria-label="Tu nombre" autocomplete="off">
+      <ol id="rank"></ol>
+      <button id="share">📲 Compartir mi puntaje</button>
+      <div class="go">Toca o presiona ESPACIO para volver a correr</div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }</script>
+<script type="module">import(`./js/core.js?v=${Date.now()}`);</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Herramientas y cachés
+.claude/
+__pycache__/
+*.pyc
+*.blend1
+Thumbs.db
+
+# Por ahora se publica solo el juego: el registro del proceso y los intentos quedan fuera
+EQUIPO.md
+AGENTES.md
+equipo/
+pruebas/
+modelos/intentos/
+modelos/render/intentos/
+modelos/props/intentos/
+modelos/render/config/
