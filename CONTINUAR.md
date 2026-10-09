@@ -7,6 +7,7 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 - Juego publicado: https://manuelleal.github.io/Cat-Run/ (repositorio `manuelleal/Cat-Run`; `main` es el código y `gh-pages` es lo que se sirve: se suben juntas con `git push origin main main:gh-pages`).
 - Servidor local: `python servidor.py 5173` (no guarda caché). Banco de bots: `pruebas/bots.js`, se carga desde la consola con `await import('/pruebas/bots.js')`.
 - Blender 4.5.9 portátil está fuera del repositorio, en `../_herramientas/`. Guías: `modelos/LEEME.md` y `modelos/render/LEEME.md`.
+- Al probar en el navegador integrado, cerrar la pestaña de pruebas al terminar: el dueño suele tener el juego abierto ahí mismo. `game.sim` ya no hace sonar nada.
 - El navegador integrado no dibuja con la ventana oculta: se prueba con `game.sim(n)` y capturas sueltas. Cada sesión debe usar su propia pestaña.
 
 ## Pendiente, en orden

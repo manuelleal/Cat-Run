@@ -982,9 +982,15 @@ function showMenu() {
 
 /* ---------- Sonido ---------- */
 let ac;
+// Tres candados para que el sonido no se desboque: mudo mientras se simula sin dibujar (pruebas),
+// mudo con la pestaña oculta, y un tope de voces a la vez (muchos efectos en el mismo instante se apilaban).
+let muted = false, voices = 0;
+const MAX_VOICES = 6;
 function sfx(f, d = .1, type = 'square', vol = .07, slide = 0) {
-  if (!ac) return;
+  if (!ac || muted || document.hidden || ac.state !== 'running' || voices >= MAX_VOICES) return;
   const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  voices++;
+  o.onended = () => { voices = Math.max(0, voices - 1); };
   o.type = type; o.frequency.value = f;
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
   g.gain.value = vol; g.gain.exponentialRampToValueAtTime(.001, t + d);
@@ -1467,8 +1473,15 @@ function frame(dt, draw = true) {
   if (draw) renderer.render(scene, camera);
 }
 function sim(n, each) {
-  for (let i = 0; i < n; i++) { each?.(i); frame(1 / 60, false); }
+  muted = true;
+  try { for (let i = 0; i < n; i++) { each?.(i); frame(1 / 60, false); } }
+  finally { muted = false; }
 }
+// al esconder la pestaña o cambiar de aplicación: pausa y silencio; al volver, el sonido regresa y la pausa la quita el jugador
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (S.state === 'play' && !S.paused) setPaused(true); ac?.suspend?.(); }
+  else ac?.resume?.();
+});
 let last = 0;
 function tick(t) {
   requestAnimationFrame(tick);
