@@ -590,6 +590,12 @@ La flecha de GIRAR dice cuál es la calle lateral antes de entrar. De frente sal
 
 Bots, 30 partidas, mediana, girador / humano: Neón 59 / 45 s, Costa 58 / 45 s, Pueblo 53 / 56 s (humano del Pueblo con 24 partidas). Explorar ahora rinde unos trece segundos más en Neón y la Costa; es intencional (plazas y tejados son más amables), pero es más de lo que rendía antes.
 
+### Coordinador — el callejón de dos carriles
+
+Un muro se come un carril entero (al azar, izquierdo o derecho) y quedan dos. El generador trata ese carril como tapiado: no pone piezas ni cuenta como salida, y no deja entrar lo que cruza la calle (burros, pelotas, drones) ni el poste caído de tres carriles. El gato no puede cambiarse hacia el muro y, si gira estando en ese carril, entra por el del centro. La cámara se centra en los dos carriles que hay. Para que los bots lean el muro, cada fila lleva una caja invisible en el carril tapiado.
+
+Bots, 20 partidas, mediana, girador / humano: Neón 47 / 41 s, Costa 93 / 50 s, Pueblo 53 s / sin terminar. El quieto sigue en 6 s. En la Costa girar rinde demasiado; queda por ajustar.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.

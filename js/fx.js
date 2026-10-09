@@ -590,7 +590,8 @@ export function install(game) {
       const won = mode === 'won', dur = won ? 1.7 : 1.15, u = inOutCubic(sat(T / dur)), ur = outCubic(sat(T / dur));
       const th1 = cine.side * (won ? .55 : 2.1), th = lerp(cine.th0, th1, u) + cine.side * Math.sin(Math.max(0, T - dur) * .45) * .22;
       const r = lerp(cine.r0, won ? 6 : 6.4, ur), h = lerp(cine.h0, won ? 2.3 : 2.8, u);
-      const wall = game.cur?.kind === 'callejon' ? 4.3 : 6.3, lat = clamp(p.x + Math.sin(th) * r, -wall, wall) - p.x; // no meterse en las fachadas
+      const cl = game.cur?.closed || 0, wall = game.cur?.kind === 'callejon' ? 4.3 : 6.3;
+      const lat = clamp(p.x + Math.sin(th) * r, cl < 0 ? -1.1 : -wall, cl > 0 ? 1.1 : wall) - p.x; // no meterse en las fachadas
       camera.position.copy(pos).addScaledVector(fwd, Math.cos(th) * r).addScaledVector(right, lat);
       camera.position.y = h;
       look.copy(pos).addScaledVector(fwd, lerp(cine.lf, won ? 0 : -.4, u)).addScaledVector(right, lerp(cine.lr, 0, u));

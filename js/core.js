@@ -613,7 +613,7 @@ const PATTERNS = {
 function perm3(s) { const a = s.split(''); for (let i = 2; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.join(''); }
 const SCRIPTED = ['SSS', 'AAA', 'XX.']; // arranque guionado: saltar, agacharse, cambiar de carril
 const gen = { free: [0, 0, 0], sinceW: 0, sinceX: [0, 0, 0], lastExits: [-1, 0, 1], seen: new Set(), scripted: 0, wave: 0, waveN: 5, respiro: 0, afterRespiro: false,
-  gapN: 0, nextCaneca: 0, nextSewer: 0, nextBalcony: 0, balconySide: 1, sewerExitAt: -1e9, rescuedAt: -1e9, base: 0 };
+  gapN: 0, nextCaneca: 0, nextSewer: 0, nextBalcony: 0, balconySide: 1, sewerExitAt: -1e9, rescuedAt: -1e9, base: 0, closed: -1 };
 function genReset() {
   Object.assign(gen, { free: [0, 0, 0], sinceW: 0, sinceX: [0, 0, 0], lastExits: [-1, 0, 1], seen: new Set(), scripted: 0, wave: 0, waveN: 5, respiro: 0, afterRespiro: false, gapN: 0,
     nextCaneca: cfg.canecaFirst, nextSewer: rand(...cfg.sewerEvery), nextBalcony: cfg.balconyFirst, balconySide: pick([-1, 1]), sewerExitAt: -1e9, rescuedAt: -1e9, base: 0 });
@@ -653,19 +653,21 @@ function pickPiece(cell, tier, opts) {
 }
 // ¿esta forma respeta las invariantes dado el estado del generador?
 function shapeOk(shape, tier, force) {
-  if (shape === 'W6') return !!candidates('W6', tier).length || false;
+  const ci = gen.closed; // callejón de dos carriles: índice del carril tapiado (-1 si no hay)
+  if (shape === 'W6') return ci < 0 && !!candidates('W6', tier).length;
   if (shape === 'TTT') return !!candidates('T', tier).length;
   const cells = shape.split('');
-  const exits = [], complete = !cells.some(c => c === '.' || c === 'M' || c === 'T');
-  cells.forEach((c, i) => { if ('.SAL'.includes(c)) exits.push(i - 1); });
+  if (ci >= 0 && cells.includes('M')) return false; // lo que cruza la calle no cabe entre dos muros
+  const exits = [], complete = !cells.some((c, i) => i !== ci && (c === '.' || c === 'M' || c === 'T'));
+  cells.forEach((c, i) => { if (i !== ci && '.SAL'.includes(c)) exits.push(i - 1); });
   if (!exits.length) return false;
   if (!gen.lastExits.some(a => exits.some(b => Math.abs(a - b) <= 1))) return false;
   if (force && !complete) return false;
   const maxFree = cfg.tierFreeMax[tier];
-  for (let i = 0; i < 3; i++) if (gen.free[i] >= maxFree && !'SAXL'.includes(cells[i])) return false;
+  for (let i = 0; i < 3; i++) if (i !== ci && gen.free[i] >= maxFree && !'SAXL'.includes(cells[i])) return false;
   if (gen.sinceW >= 5 && (!complete || cells.some(c => c === 'X'))) return false;
   const hasX = candidates('X', tier).length > 0;
-  if (hasX) for (let i = 0; i < 3; i++) if (gen.sinceX[i] >= 7 && cells[i] !== 'X') return false;
+  if (hasX) for (let i = 0; i < 3; i++) if (i !== ci && gen.sinceX[i] >= 7 && cells[i] !== 'X') return false;
   if (tier === 0 && (cells.includes('M') || cells.includes('T'))) return false;
   // cada celda tiene que poder sembrarse tal como placeRow la va a sembrar: 'AAA' admite una pieza de ancho total; el resto, piezas normales
   for (const c of new Set(cells)) {
@@ -703,18 +705,20 @@ function placeRow(seg, s, shape, tier) {
   else if (shape === 'TTT') { const pc = pickPiece('T', tier); const o = pc.make(seg, s, 0); cells = ['T', 'T', 'T']; gen.seen.add(pc.type); len = 2 * (o?.hl || .3); }
   else {
     cells = shape.split('');
-    const kinds = new Set(cells.filter(c => c !== '.')), single = kinds.size === 1;
+    const ci = gen.closed;
+    if (ci >= 0) cells[ci] = '#'; // carril tapiado: ni pieza ni salida
+    const kinds = new Set(cells.filter(c => c !== '.' && c !== '#')), single = kinds.size === 1;
     const mixed = !single; // primer encuentro limpio: una pieza nueva solo entra en una fila de un solo tipo (antes los huecos también contaban
     // como mezcla, y como ninguna fila de muros es completa, el primer muro que salía era el único de toda la partida)
     // fila completa de A: una pieza de ancho total a veces, o siempre si no hay piezas A de un carril
     if (shape === 'AAA' && (Math.random() < .35 || !candidates('A', tier).length)) {
       const pc = pickPiece('A', tier, { full: true });
-      if (pc) { const o = pc.make(seg, s, 0); gen.seen.add(pc.type); return { len: 2 * (o?.hl || .3), exits: [-1, 0, 1], complete: true, cells }; }
+      if (pc) { const o = pc.make(seg, s, 0); gen.seen.add(pc.type); return { len: 2 * (o?.hl || .3), exits: [-1, 0, 1].filter(l => l + 1 !== ci), complete: true, cells }; }
     }
     let sameType = null;
     for (let i = 0; i < 3; i++) {
       const c = cells[i];
-      if (c === '.') continue;
+      if (c === '.' || c === '#') continue;
       if (c === 'S' && i < 2 && cells[i + 1] === 'S' && Math.random() < .35) { // dos S vecinas: puede ser una pieza de dos carriles (zanja)
         const wide = pickPiece('S', tier, { wide: true, mixed });
         if (wide) { const o = wide.make(seg, s, i - 1 + .5); gen.seen.add(wide.type); len = Math.max(len, 2 * o.hl); i++; continue; }
@@ -737,11 +741,11 @@ function placeRow(seg, s, shape, tier) {
 function afterRow(row) {
   const cells = row.cells;
   for (let i = 0; i < 3; i++) {
-    gen.free[i] = 'SAXL'.includes(cells[i]) ? 0 : gen.free[i] + 1;
-    gen.sinceX[i] = cells[i] === 'X' ? 0 : gen.sinceX[i] + 1;
+    gen.free[i] = 'SAXL#'.includes(cells[i]) ? 0 : gen.free[i] + 1;
+    gen.sinceX[i] = cells[i] === 'X' || cells[i] === '#' ? 0 : gen.sinceX[i] + 1;
   }
   gen.sinceW = row.complete && !cells.includes('X') ? 0 : gen.sinceW + 1;
-  gen.lastExits = row.exits.length ? row.exits : [-1, 0, 1];
+  gen.lastExits = row.exits.length ? row.exits : [-1, 0, 1].filter(l => l + 1 !== gen.closed);
 }
 // monedas por una ruta válida entre dos filas; ratones fuera de la ruta cada N huecos
 function fillGap(seg, s0, s1, exitsA, exitsB, opts = {}) {
@@ -757,8 +761,8 @@ function fillGap(seg, s0, s1, exitsA, exitsB, opts = {}) {
   gen.gapN++;
   const every = opts.mice ?? W('miceEvery');
   if (every > 0 && gen.gapN % every === 0 && room >= 9 && left - n >= 3) {
-    const lanes = [-1, 0, 1].filter(l => l !== a && l !== b);
-    const l = lanes.length ? pick(lanes) : (a === b ? pick([-1, 0, 1].filter(x => x !== a)) : a);
+    const open = [-1, 0, 1].filter(l => l + 1 !== gen.closed), lanes = open.filter(l => l !== a && l !== b);
+    const l = lanes.length ? pick(lanes) : (a === b ? pick(open.filter(x => x !== a)) : a);
     const mid = s0 + 3 + room / 2;
     for (let k = 0; k < 3; k++) addObstacle(seg, 'raton', mid - 2.6 + k * 2.6, l);
   }
@@ -766,7 +770,8 @@ function fillGap(seg, s0, s1, exitsA, exitsB, opts = {}) {
 }
 // cosas que solo van en un respiro: caneca, alcantarilla verde, acceso a balcón (cada una en un carril distinto de la ruta)
 function specials(seg, s0, s1, exits, dist, heat) {
-  const used = new Set(exits.slice(0, 1)), freeLane = pref => { const l = pref.filter(x => !used.has(x)); if (!l.length) return null; const c = pick(l); used.add(c); return c; };
+  const used = new Set(exits.slice(0, 1)); if (seg.closed) used.add(seg.closed);
+  const freeLane = pref => { const l = pref.filter(x => !used.has(x)); if (!l.length) return null; const c = pick(l); used.add(c); return c; };
   if (PIECES.caneca && dist >= gen.nextCaneca && heat >= cfg.canecaMinHeat && dist - gen.rescuedAt >= cfg.canecaAfterRescue && s1 - s0 > 12) {
     const l = freeLane([-1, 0, 1]);
     if (l !== null) { PIECES.caneca.make(seg, (s0 + s1) / 2 - 1.6, l); gen.nextCaneca = dist + rand(...cfg.canecaEvery); emit('specialPlaced', { type: 'caneca', dist }); }
@@ -785,10 +790,11 @@ function populate(seg, first) {
   let prev = null; // { s: fin de la fila anterior, exits }
   if (run) { genReset(); gen.scripted = SCRIPTED.length; gen.base = 0; }
   // monedas de bienvenida: desde el cruce hasta la primera fila, por el carril de la ruta anterior
-  const head0 = run ? 20 : 8, headLane = gen.lastExits.includes(0) ? 0 : pick(gen.lastExits);
+  const head0 = run ? 20 : 8, headLane = seg.closed || gen.lastExits.includes(0) ? 0 : pick(gen.lastExits);
   for (let k = head0; k < s - 4; k += 2.4) addObstacle(seg, 'moneda', k, headLane);
   let rowsInSeg = 0;
-  gen.kind = seg.kind;
+  gen.kind = seg.kind; gen.closed = seg.closed ? idx(seg.closed) : -1;
+  if (seg.closed) { gen.lastExits = gen.lastExits.filter(l => l !== seg.closed); if (!gen.lastExits.length) gen.lastExits = [0]; }
   const maxRows = seg.kind === 'plaza' ? 4 : cfg.streetMaxRows; // la plaza es un respiro: pocas filas
   while (s < end) {
     const heat = arrival(s), v = speedAt(heat);
@@ -819,6 +825,7 @@ function populate(seg, first) {
     for (let i = 0; i < plan.shapes.length; i++) {
       if (i > 0 && !shapeOk(plan.shapes[i], tier, false)) break;
       row = placeRow(seg, rowS, plan.shapes[i], tier);
+      if (seg.closed) Object.assign(addObstacle(seg, 'nada', rowS, seg.closed), { y0: 0, y1: 3, cell: 'X' }); // el muro, para quien lea la fila (los bots)
       if (prev && !prev.filled) fillGap(seg, prev.s, rowS, prev.exits, row.exits, seg.bonus ? { mice: 1 } : undefined);
       afterRow(row);
       prev = { s: rowS + row.len, exits: row.exits, filled: i < plan.shapes.length - 1 };
@@ -919,20 +926,21 @@ function kindFor(d) {
 // callejón: los muros se cierran sobre la calzada (sin andén), con ropa tendida contra la pared, cajas y faroles
 function alleySide(st, seg, side, a, end) {
   const ROPA = [0xe8456b, 0x2f6fd0, 0xffffff, 0xf2b632, 0x2f8f6b, 0xff7a3a];
+  const wx = seg.closed === side ? 1.6 : 4.9, k0 = wx - 4.9; // del lado tapiado el muro se come un carril entero
   let s = a;
   while (s < end - .1) {
     let w = pick([8, 10, 12]);
     if (end - s - w < 6) w = end - s;
     const z = -(s + w / 2), r = Math.random();
-    block(st, side * (4.9 + DEPTH / 2), z, DEPTH, w);
-    part(BOX, pick(W('zocalos')), .12, 1.2, w, side * 4.86, .8, z, st);
+    block(st, side * (wx + DEPTH / 2), z, DEPTH, w);
+    part(BOX, pick(W('zocalos')), .12, 1.2, w, side * (wx - .04), .8, z, st);
     if (r < .45) {
-      part(BOX, 0xe8e0d0, .04, .04, w * .7, side * 4.78, 4.85, z, st);
-      for (let k = 0; k < 3; k++) { const h = rand(.8, 1.3); part(BOX, pick(ROPA), .06, h, rand(.6, 1), side * 4.8, 4.8 - h / 2, z + (k - 1) * 1.4, st); }
+      part(BOX, 0xe8e0d0, .04, .04, w * .7, side * (4.78 + k0), 4.85, z, st);
+      for (let k = 0; k < 3; k++) { const h = rand(.8, 1.3); part(BOX, pick(ROPA), .06, h, rand(.6, 1), side * (4.8 + k0), 4.8 - h / 2, z + (k - 1) * 1.4, st); }
     } else if (r < .75) {
-      part(BOX, 0xb9833f, .5, .5, .5, side * 4.62, .25, z, st); part(BOX, 0xc9954f, .4, .4, .4, side * 4.66, .7, z + .05, st).rotation.y = .4;
-    } else { part(CYL, 0xb5653a, .4, .45, .4, side * 4.66, .22, z, st); part(SPH, pick([0xe8456b, 0xffb020, 0x3f9a4f]), .5, .45, .5, side * 4.66, .6, z, st); }
-    part(BOX, 0x1a1a1f, .3, .06, .06, side * 4.75, 3.75, z + w / 2 - .5, st); part(BOX, 0xffd98a, .22, .32, .22, side * 4.66, 3.55, z + w / 2 - .5, st);
+      part(BOX, 0xb9833f, .5, .5, .5, side * (4.62 + k0), .25, z, st); part(BOX, 0xc9954f, .4, .4, .4, side * (4.66 + k0), .7, z + .05, st).rotation.y = .4;
+    } else { part(CYL, 0xb5653a, .4, .45, .4, side * (4.66 + k0), .22, z, st); part(SPH, pick([0xe8456b, 0xffb020, 0x3f9a4f]), .5, .45, .5, side * (4.66 + k0), .6, z, st); }
+    part(BOX, 0x1a1a1f, .3, .06, .06, side * (4.75 + k0), 3.75, z + w / 2 - .5, st); part(BOX, 0xffd98a, .22, .32, .22, side * (4.66 + k0), 3.55, z + w / 2 - .5, st);
     s += w;
   }
 }
@@ -971,6 +979,7 @@ function buildSegment(origin, yaw, first, base = 0, turned = false, kind = '') {
   const seg = {
     origin, yaw, L, first: !!first, obs: [], exits: {}, g: new THREE.Group(), world, base,
     sides: world.tunnel ? [] : r < .35 ? [-1] : r < .7 ? [1] : [-1, 1],
+    closed: kind === 'callejon' ? pick([-1, 1]) : 0, // callejón: dos carriles; este es el carril que tapa el muro
     kind, // '' | 'callejon' | 'mercado' | 'plaza' | 'tejado': tipos de calle inventados (no copian ningún lugar); la flecha de GIRAR anuncia el de las laterales
     turned, // calle lateral: solo se entra girando, y no se ve antes de girar
     bonus, // calle con premio: solo calles laterales; la flecha de GIRAR lo anuncia y populate() la llena de ratones a cambio de filas más seguidas
@@ -1138,6 +1147,7 @@ function move(dir) {
   if (cur.exits[dir] && toCross > -3 && ((dbl && toCross < 60) || (toCross < 30 && p.lane === dir))) return void turn(dir);
   let lane = p.lane + dir;
   if (Math.abs(lane) === 2 && !canClimb(lane)) lane = p.lane;
+  if (cur.closed && lane === cur.closed) lane = p.lane; // callejón: de ese lado hay muro
   lane = clamp(lane, -2, 2);
   if (lane !== p.lane) { p.prevLane = p.lane; p.lane = lane; emit('lane', dir); }
 }
@@ -1421,7 +1431,9 @@ function choose(d) {
   const chosen = cur.exits[d];
   if (d) {
     const ns = d * p.x, nx = -d * (p.s - cur.L);
-    p.s = ns; p.x = nx; p.lane = clamp(Math.round(nx / LANE), -1, 1); p.prevLane = p.lane;
+    p.s = ns; p.x = nx; p.lane = clamp(Math.round(nx / LANE), -1, 1);
+    if (chosen.closed && p.lane === chosen.closed) p.lane = 0; // entra al callejón por donde hay calle
+    p.prevLane = p.lane;
     if (S.danger > 0) S.danger = Math.max(0, S.danger - 2); // Panela derrapa en la esquina
     racha(10, 50, 'turn');
   } else p.s -= cur.L;
@@ -1568,7 +1580,8 @@ function place(dt) {
 
   fwd.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
   S.shake = Math.max(0, S.shake - dt);
-  const camAdj = clamp(p.x, -3.8, 3.8) - p.x;
+  const camMid = cur.closed ? -cur.closed * 1.5 : 0, camHalf = cur.closed ? 1 : 3.8; // en el callejón la cámara se centra en los dos carriles que hay
+  const camAdj = clamp(p.x, camMid - camHalf, camMid + camHalf) - p.x;
   camPos.copy(pos).addScaledVector(sideV, camAdj);
   camera.position.copy(camPos).addScaledVector(fwd, -(S.dogGap + view.back));
   if (!flags.cameraOwner) camera.position.x += (Math.random() - .5) * S.shake;
