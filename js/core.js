@@ -349,25 +349,34 @@ const BUILD = {
     for (const z of [-3.7, 3.7]) part(CYL, 0xa49e92, 2, .3, 2, 0, 1, z, g).rotation.x = Math.PI / 2;
     part(BOX, 0x6b4a2f, 2.2, .2, .2, 0, .1, -2.5, g); part(BOX, 0x6b4a2f, 2.2, .2, .2, 0, .1, 2.5, g);
   },
-  hidrante(g) { // hidrante que abre y cierra un chorro de agua a través del carril
-    part(CYL, 0xd8433b, .5, 1.1, .5, 0, .55, 0, g); part(SPH, 0xd8433b, .55, .4, .55, 0, 1.15, 0, g);
-    part(CYL, 0xb03030, .3, .3, .3, .35, .8, 0, g).rotation.z = Math.PI / 2;
-    part(CYL, 0xb03030, .3, .3, .3, 0, .8, .35, g).rotation.x = Math.PI / 2;
+  hidrante(g) { // hidrante parado en el borde del andén; la boca mira hacia -x (el carril) y el charco marca dónde cae el agua
+    part(CYL, 0x8a2a24, .7, .12, .7, 0, .36, 0, g);
+    part(CYL, 0xd8433b, .5, 1.1, .5, 0, .85, 0, g); part(SPH, 0xd8433b, .55, .4, .55, 0, 1.45, 0, g);
+    part(CYL, 0xf2c230, .2, .16, .2, 0, 1.68, 0, g);
+    part(CYL, 0xb03030, .34, .4, .34, -.3, 1.05, 0, g).rotation.z = Math.PI / 2;
+    part(CYL, 0xb03030, .3, .3, .3, 0, 1.05, .32, g).rotation.x = Math.PI / 2;
+    part(DISC, 0x6fb7e8, 1.25, 1, .9, -1.95, .03, 0, g); part(DISC, 0xa9dcf7, .7, 1, .5, -1.7, .04, .1, g);
   },
-  chorro(g) { part(BOX, 0x8fd8ff, 2.6, 2.2, .5, 0, 1.3, 0, g); part(DISC, 0x6fb7e8, 1.4, 1, .9, 0, .03, 0, g); },
+  chorro(g) { // arco de agua desde la boca (origen) hasta el otro borde del carril, con cortina debajo: se lee como muro
+    const N = 7, at = t => [-3 * t, 5.6 * t - 6.45 * t * t];
+    for (let k = 0; k < N; k++) {
+      const [x0, y0] = at(k / N), [x1, y1] = at((k + 1) / N), len = Math.hypot(x1 - x0, y1 - y0), w = .28 + k * .05;
+      part(BOX, k % 2 ? 0xd6f1ff : 0x8fd8ff, len + .08, w, w + .1, (x0 + x1) / 2, (y0 + y1) / 2, 0, g).rotation.z = Math.atan2(y1 - y0, x1 - x0);
+      if (k > 0) { const h = Math.max(.2, y0 + 1.05); part(BOX, 0xbfe8ff, .1, h, .12, x0, y0 - h / 2, k % 2 ? .12 : -.12, g); } // cortina de gotas
+    }
+    part(SPH, 0xffffff, .9, .5, .9, -2.9, -.95, 0, g); // salpicadura donde cae
+  },
   andamio(g) { // andamio bajo de obra: un tablón a media altura; se pasa agachado
     for (const x of [-1.1, 1.1]) { part(BOX, 0x4a4f5c, .14, 2.3, .14, x, 1.15, -.45, g); part(BOX, 0x4a4f5c, .14, 2.3, .14, x, 1.15, .45, g); }
     part(BOX, 0xc9954f, 2.5, .12, 1.1, 0, 1.35, 0, g);
     part(BOX, 0x4a4f5c, 2.4, .08, .08, 0, 2.25, -.45, g); part(BOX, 0x4a4f5c, 2.4, .08, .08, 0, 2.25, .45, g);
     part(CYL, 0xd8433b, .5, .5, .5, .5, 1.66, 0, g); part(BOX, hazardMat, 2.5, .22, .05, 0, 1.9, -.5, g);
   },
-  caneca(g) { // caneca grande volcada: se pasa agachado por dentro
-    part(CYL, 0x2f7a4a, 1.5, 3, 1.5, 0, .75, 0, g).rotation.x = Math.PI / 2;
-    part(CYL, 0x1d4f30, 1.52, .3, 1.52, 0, .75, -1.4, g).rotation.x = Math.PI / 2;
-    part(CYL, 0x1d4f30, 1.52, .3, 1.52, 0, .75, 1.4, g).rotation.x = Math.PI / 2;
-    part(CYL, 0x06140a, 1.15, .2, 1.15, 0, .7, 1.55, g).rotation.x = Math.PI / 2; // boca oscura hacia el gato
-    part(BOX, 0x35f07a, .5, .06, .6, 0, 1.53, 0, g); // huella pintada encima
-    for (const x of [-.22, .22]) part(SPH, 0x35f07a, .16, .06, .16, x, 1.53, -.45, g);
+  caneca(g) { // caneca grande volcada: se pasa agachado por dentro (figura de reserva; la buena es modelos/props/caneca.glb)
+    part(CYL, 0x2f7a4a, 2.3, 2.8, 2.3, 0, 1.15, 0, g).rotation.x = Math.PI / 2;
+    part(CYL, 0x1d4f30, 2.34, .3, 2.34, 0, 1.15, -1.3, g).rotation.x = Math.PI / 2;
+    part(CYL, 0x1d4f30, 2.34, .3, 2.34, 0, 1.15, 1.3, g).rotation.x = Math.PI / 2;
+    part(CYL, 0x06140a, 1.9, .2, 1.9, 0, 1.1, 1.45, g).rotation.x = Math.PI / 2; // boca oscura hacia el gato
   },
   escalones(g) { // escalones del balcón: cajas apiladas que suben al andén elevado
     for (let k = 0; k < 4; k++) part(BOX, k % 2 ? 0xb9833f : 0xc9954f, 2.4, .55 * (k + 1), 1.25, 0, .275 * (k + 1), 1.9 - k * 1.25, g);
@@ -401,10 +410,10 @@ const SPEC = {
   nada: { hw: 1.3, hl: .4, y0: 0, y1: .9, cell: 'S', fly: false, shadow: false, ghost: true },
   zanja: { hw: 2.9, hl: 1.5, y0: -1, y1: .05, cell: 'S', hole: true, lanes: 2, shadow: false },
   tuboc: { hw: 1.2, hl: 4, y0: .55, y1: 1.6, top: 1.6, cell: 'A', long: true },
-  hidrante: { hw: 1.3, hl: .4, y0: 0, y1: 2.4, cell: 'X', timed: true, fly: false }, // bloquea un carril a ratos: para el generador es un muro
+  hidrante: { hw: 1.3, hl: .4, y0: 0, y1: 2.4, cell: 'X', timed: true, fly: false, outer: true }, // bloquea un carril de afuera a ratos: para el generador es un muro
   andamio: { hw: 1.2, hl: .55, y0: .55, y1: 2.3, cell: 'A', fly: true }, // la única celda A blanda de un carril: hace falta en todo mundo
   chorro: { hw: 1.3, hl: .4, y0: 0, y1: 2.4, shadow: false },
-  caneca: { hw: .9, hl: 1.6, y0: .55, y1: 1.6, cell: 'A', fly: true, special: true },
+  caneca: { hw: 1.1, hl: 1.4, y0: .55, y1: 2.4, cell: 'A', fly: true, special: true }, // grande: no se salta, se pasa agachado
   escalones: { hw: 1.25, hl: 2.5, y0: 0, y1: 2.2, top: 2.2, ramp: true, dmg: 0, special: true },
   balcon: { hw: 1.3, hl: 12, y0: 0, y1: 2.2, top: 2.2, dmg: 0, special: true },
   pescado: { hw: 1.1, hl: 1, y0: 0, y1: 1.6, collect: true, food: true, shadow: false },
@@ -417,9 +426,12 @@ function spawn(type) {
   const v = Math.floor(Math.random() * 15), key = type + (VARIANTS[type] ? v % VARIANTS[type] : '');
   if (!protos[key]) { const g = new THREE.Group(); BUILD[type](g, v); protos[key] = g.children.length ? bake(g) : []; }
   const g = new THREE.Group();
-  for (const { geometry, material } of protos[key]) {
+  for (const { geometry, material, name, position, rotation } of protos[key]) {
     const m = new THREE.Mesh(geometry, material);
     m.castShadow = SPEC[type]?.shadow !== false;
+    if (name) m.name = name; // piezas con pivote propio (la tapa de la caneca)
+    if (position) m.position.copy(position);
+    if (rotation) m.rotation.copy(rotation);
     g.add(m);
   }
   g.userData.variant = v;
@@ -523,13 +535,31 @@ function addObstacle(seg, type, s, lane, y = 0) {
 const PIECES = {};
 function piece(type, def = {}) {
   const spec = SPEC[type] || {};
-  PIECES[type] = { type, cell: spec.cell, hard: !!spec.hard, move: !!spec.move, full: !!spec.full, long: !!spec.long, lanes: spec.lanes || 1,
+  PIECES[type] = { type, cell: spec.cell, hard: !!spec.hard, move: !!spec.move, full: !!spec.full, long: !!spec.long, lanes: spec.lanes || 1, outer: !!spec.outer,
     worlds: {}, make: (seg, s, lane) => addObstacle(seg, type, s, lane), ...def };
   return PIECES[type];
 }
 // piezas del núcleo (los pesos por mundo los pone cada mundo en `pieces`; el mundo por defecto arriba)
 for (const t of ['valla', 'caja', 'basura', 'alcantarilla', 'carro', 'bus', 'senora', 'carreta', 'cinta', 'contenedor', 'bolsas', 'zanja', 'tuboc', 'andamio']) piece(t);
-piece('caneca'); // punto de regeneración: no entra en las filas, solo la coloca specials() en un respiro
+// Caneca: punto de regeneración. No entra en las filas: solo la coloca specials() en un respiro. Para que no se confunda con un
+// obstáculo lleva una señal que ninguna otra pieza tiene: flecha verde hacia abajo flotando encima y marcas verdes en el piso que
+// corren hacia la boca. La señal se apaga cuando ya se pasó.
+const signMat = new THREE.MeshBasicMaterial({ color: 0x35f07a });
+piece('caneca', { make(seg, s, lane) {
+  const o = addObstacle(seg, 'caneca', s, lane), sign = new THREE.Group(), arrow = new THREE.Group();
+  part(BOX, signMat, .8, 1.3, .8, 0, 1.3, 0, arrow);
+  part(CONE, signMat, 2.6, 1.5, 2.6, 0, 0, 0, arrow).rotation.set(Math.PI, Math.PI / 4, 0);
+  const marks = [0, 1, 2].map(k => { const m = part(CONE, signMat, 1.7, 1.1, .04, 0, .04, o.hl + 1.6 + k * 1.7, sign); m.rotation.x = -Math.PI / 2; return m; });
+  sign.add(arrow); o.mesh.add(sign);
+  o.lid = o.mesh.getObjectByName('lid'); o.lidOpen = o.lid ? o.lid.rotation.x : 0;
+  o.animate = (o, t) => {
+    sign.visible = !o.passed;
+    arrow.position.y = 4.3 + Math.sin(t * 6) * .3; arrow.rotation.y = t * 2;
+    const k = 2 - Math.floor(t * 5) % 3; marks.forEach((m, i) => { m.visible = i !== k; }); // las marcas "caminan" hacia la boca
+    if (o.lid) o.lid.rotation.x = o.lidOpen + Math.sin(t * 9) * .08;
+  };
+  return o;
+} });
 piece('poste', { make(seg, s, lane) { // una sola viga, tres celdas: S en un lado, X en el centro, A en el otro
   const o = addObstacle(seg, 'poste', s, 0), dir = o.variant % 2 ? 1 : -1;
   const lo = addObstacle(seg, 'nada', s, -dir), hi = addObstacle(seg, 'nada', s, dir), mid = addObstacle(seg, 'nada', s, 0);
@@ -538,13 +568,21 @@ piece('poste', { make(seg, s, lane) { // una sola viga, tres celdas: S en un lad
   o.cells = dir > 0 ? 'SXA' : 'AXS';
   return o;
 } });
+// El hidrante se para en el borde del andén del lado de su carril (solo carriles de afuera: `outer`) y echa el chorro
+// de lado, atravesando ese carril y nada más. Cerrado se pasa; abierto es un muro de agua (tropiezo, nunca captura dura).
+// Ciclo en las reglas: hydrantOn abierto, hydrantOff cerrado, y un goteo de aviso hydrantWarn antes de abrir.
 piece('hidrante', { make(seg, s, lane) {
-  const o = addObstacle(seg, 'hidrante', s, lane), jet = spawn('chorro');
-  jet.position.set(0, 0, 0); o.mesh.add(jet); o.jet = jet; o.ph = rand(0, 6);
+  const side = Math.sign(lane) || pick([-1, 1]);
+  if (balconyAt(seg, side, s)) return PIECES.bolsas.make(seg, s, lane); // ahí van los escalones del balcón: el hidrante no cabe
+  const o = addObstacle(seg, 'hidrante', s, side), jet = spawn('chorro'), turn = side > 0 ? 0 : Math.PI;
+  for (const m of o.mesh.children) { m.position.x = side * 1.95; m.rotation.y = turn; }
+  jet.position.set(side * 1.6, 1.05, 0); jet.rotation.y = turn;
+  o.mesh.add(jet); o.jet = jet; o.ph = rand(0, 6);
   o.y0 = -9; o.y1 = -8;
-  o.animate = (o, t) => { // 1,2 s abierto, 1,2 s cerrado; el chorro se ve 0,4 s antes de contar (aviso)
-    const u = ((t + o.ph) % 2.4), open = u < 1.2, warn = u > 2.0;
-    o.jet.visible = open || warn; o.jet.scale.y = open ? 1 : .25;
+  o.animate = (o, t) => {
+    const on = cfg.hydrantOn, cycle = on + cfg.hydrantOff, u = (t + o.ph) % cycle, open = u < on, warn = u > cycle - cfg.hydrantWarn;
+    o.jet.visible = open || warn;
+    o.jet.scale.setScalar(open ? 1 + Math.sin(t * 30) * .03 : .28);
     o.y0 = open ? 0 : -9; o.y1 = open ? 2.4 : -8;
   };
   return o;
@@ -597,6 +635,7 @@ function candidates(cell, tier, opts = {}) {
     if (cell === 'S' && pc.lanes === 2 && !opts.wide) continue;
     if (cell === 'S' && opts.wide && pc.lanes !== 2) continue;
     if (pc.hard && tier < 1) continue;
+    if (opts.center && pc.outer) continue; // piezas que viven en el andén: solo carriles de afuera
     if ((SPEC[k]?.minTier || 0) > tier) continue; // piezas que se acercan de frente: solo desde cierto escalón
     if (opts.seenOnly && !gen.seen.has(k)) continue;
     out.push([k, w]);
@@ -664,7 +703,8 @@ function placeRow(seg, s, shape, tier) {
   else {
     cells = shape.split('');
     const kinds = new Set(cells.filter(c => c !== '.')), single = kinds.size === 1;
-    const mixed = !single || cells.includes('.');
+    const mixed = !single; // primer encuentro limpio: una pieza nueva solo entra en una fila de un solo tipo (antes los huecos también contaban
+    // como mezcla, y como ninguna fila de muros es completa, el primer muro que salía era el único de toda la partida)
     // fila completa de A: una pieza de ancho total a veces, o siempre si no hay piezas A de un carril
     if (shape === 'AAA' && (Math.random() < .35 || !candidates('A', tier).length)) {
       const pc = pickPiece('A', tier, { full: true });
@@ -678,8 +718,9 @@ function placeRow(seg, s, shape, tier) {
         const wide = pickPiece('S', tier, { wide: true, mixed });
         if (wide) { const o = wide.make(seg, s, i - 1 + .5); gen.seen.add(wide.type); len = Math.max(len, 2 * o.hl); i++; continue; }
       }
-      let pc = single && sameType ? sameType : pickPiece(c, tier, { mixed });
-      if (!pc && FALLBACK_CELL[c]) { pc = pickPiece(FALLBACK_CELL[c], tier, { mixed }); if (pc) cells[i] = FALLBACK_CELL[c]; }
+      const center = i === 1;
+      let pc = single && sameType && !(center && sameType.outer) ? sameType : pickPiece(c, tier, { mixed, center });
+      if (!pc && FALLBACK_CELL[c]) { pc = pickPiece(FALLBACK_CELL[c], tier, { mixed, center }); if (pc) cells[i] = FALLBACK_CELL[c]; }
       if (!pc) { cells[i] = '.'; continue; }
       if (single && !sameType && Math.random() < .7) sameType = pc;
       const lane = c === 'M' ? 0 : i - 1;
@@ -709,11 +750,12 @@ function fillGap(seg, s0, s1, exitsA, exitsB, opts = {}) {
   let b = a;
   if (a === undefined) { a = pick(exitsA); b = exitsB.find(l => Math.abs(l - a) <= 1) ?? a; }
   if (opts.zigzag) { a = pick(exitsA); b = pick(exitsB.filter(l => Math.abs(l - a) <= 1)) ?? a; }
-  const n = Math.min(7, Math.floor(room / 2.4)), start = s0 + 3 + (room - (n - 1) * 2.4) / 2;
+  const left = cfg.streetMaxPickups - seg.obs.reduce((c, o) => c + (o.collect ? 1 : 0), 0); // tope de cosas para recoger por calle
+  const n = Math.min(7, Math.floor(room / 2.4), Math.max(0, left)), start = s0 + 3 + (room - (n - 1) * 2.4) / 2;
   for (let k = 0; k < n; k++) addObstacle(seg, 'moneda', start + k * 2.4, k < n / 2 ? a : b);
   gen.gapN++;
   const every = opts.mice ?? W('miceEvery');
-  if (every > 0 && gen.gapN % every === 0 && room >= 9) {
+  if (every > 0 && gen.gapN % every === 0 && room >= 9 && left - n >= 3) {
     const lanes = [-1, 0, 1].filter(l => l !== a && l !== b);
     const l = lanes.length ? pick(lanes) : (a === b ? pick([-1, 0, 1].filter(x => x !== a)) : a);
     const mid = s0 + 3 + room / 2;
@@ -726,7 +768,7 @@ function specials(seg, s0, s1, exits, dist, heat) {
   const used = new Set(exits.slice(0, 1)), freeLane = pref => { const l = pref.filter(x => !used.has(x)); if (!l.length) return null; const c = pick(l); used.add(c); return c; };
   if (PIECES.caneca && dist >= gen.nextCaneca && heat >= cfg.canecaMinHeat && dist - gen.rescuedAt >= cfg.canecaAfterRescue && s1 - s0 > 12) {
     const l = freeLane([-1, 0, 1]);
-    if (l !== null) { addObstacle(seg, 'caneca', (s0 + s1) / 2 - 1.6, l); gen.nextCaneca = dist + rand(...cfg.canecaEvery); emit('specialPlaced', { type: 'caneca', dist }); }
+    if (l !== null) { PIECES.caneca.make(seg, (s0 + s1) / 2 - 1.6, l); gen.nextCaneca = dist + rand(...cfg.canecaEvery); emit('specialPlaced', { type: 'caneca', dist }); }
   }
   if (PIECES.drenaje && !sub && !seg.first && dist >= gen.nextSewer && heat >= cfg.sewerMinHeat && dist - gen.sewerExitAt >= cfg.sewerCooldown) {
     const l = freeLane([-1, 1]);
@@ -749,7 +791,10 @@ function populate(seg, first) {
     const [t0, t1] = cfg.tierRowTime[Math.min(tier, 4)];
     const tRow = rand(t0, t1);
     const nearEnd = s + v * t1 * 1.5 + 14 > end; // cerca del cruce no caben combos
-    const lastRow = s + v * t1 + 14 > end; // si después de esta fila ya no cabe otra, esta es la última: completa
+    // topes por calle: cuando ya no cabe otra fila completa (rowMaxObs) dentro del tope, esta es la última y lo que queda de calle va libre
+    const nObs = seg.obs.reduce((c, o) => c + (o.collect || o.ghost || o.special ? 0 : 1), 0);
+    const capped = rowsInSeg + 1 >= cfg.streetMaxRows || nObs + 2 * cfg.rowMaxObs > cfg.streetMaxObs;
+    const lastRow = capped || s + v * t1 + 14 > end; // si después de esta fila ya no cabe otra, esta es la última: completa
     if (gen.respiro > 0 && !lastRow && !gen.scripted) { // respiro: dos huecos sin filas, con premio y decisiones de ruta
       const s1 = s + v * tRow;
       fillGap(seg, s - 2, s1, gen.lastExits, gen.lastExits, { zigzag: true, mice: 1 });
@@ -761,7 +806,7 @@ function populate(seg, first) {
     const force = rowsInSeg === 0 || lastRow || gen.afterRespiro || gen.wave >= gen.waveN;
     let plan;
     if (gen.scripted > 0) { plan = { shapes: [SCRIPTED[SCRIPTED.length - gen.scripted]], inner: 0, key: 'guion' }; gen.scripted--; }
-    else plan = pickShape(tier, force, nearEnd);
+    else plan = pickShape(tier, force, nearEnd || rowsInSeg + 4 > cfg.streetMaxRows || nObs + 4 * cfg.rowMaxObs > cfg.streetMaxObs); // un combo (hasta 3 filas) solo si cabe con la fila de cierre
     gen.lastCombo = plan.shapes.length > 1;
     let rowS = s, row = null;
     for (let i = 0; i < plan.shapes.length; i++) {
@@ -1121,16 +1166,15 @@ $('share').addEventListener('click', () => {
 /* ---------- HUD ---------- */
 // La barra ya no es vida: es el Bocado. Al lado, el icono de caneca (carga de rescate) y el multiplicador lo pinta fx.js.
 const bocadoPill = document.createElement('span'); bocadoPill.className = 'pill'; bocadoPill.id = 'bocadoPill'; bocadoPill.textContent = '🐟';
-const canecaPill = document.createElement('span'); canecaPill.className = 'pill'; canecaPill.id = 'canecaPill'; canecaPill.textContent = '🗑️'; canecaPill.style.opacity = .35;
+const canecaPill = document.createElement('span'); canecaPill.className = 'pill'; canecaPill.id = 'canecaPill'; canecaPill.textContent = '🗑️'; canecaPill.hidden = true; canecaPill.title = 'Escondite listo: si Panela te alcanza, puedes salir de la caneca';
 $('bar').after(bocadoPill, canecaPill);
 $('bar').title = 'Bocado: ratones y comida. Lleno, salva de una captura por doble tropiezo';
 function hud() {
   const full = S.bocados > 0;
   $('fill').style.width = (full ? 100 : 100 * S.bocado / cfg.bocadoMax) + '%';
   $('fill').style.background = full ? 'var(--accent)' : 'var(--good)';
-  bocadoPill.style.opacity = full ? 1 : .5;
-  bocadoPill.textContent = full ? '🐟 ¡Bocado!' : '🐟';
-  canecaPill.style.opacity = S.canecas > 0 ? 1 : .35;
+  $('bar').classList.toggle('full', full);
+  canecaPill.hidden = S.canecas < 1; // la caneca solo ocupa sitio cuando hay carga
   $('danger').style.opacity = S.state === 'play' ? clamp(S.danger / cfg.dangerTime, 0, 1) * .9 : 0;
   $('mice').textContent = S.mice;
   $('coins').textContent = S.coins;

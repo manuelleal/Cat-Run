@@ -27,6 +27,10 @@ export const BASE = {
   tierRowTime: [[1.7, 2.0], [1.5, 1.8], [1.25, 1.5], [1.0, 1.3], [.95, 1.15]],
   tierFreeMax: [2, 2, 1, 1, 1],
   tierWave: [[5, 5], [6, 7], [7, 8], [8, 9], [10, 12]],
+  // topes por calle (un tramo entre dos cruces) y por fila: medido sin tope, una calle traía 9–10 obstáculos de mediana y hasta 17
+  rowMaxObs: 3, streetMaxRows: 6, streetMaxObs: 14, streetMaxPickups: 55,
+  // hidrante: segundos con el chorro abierto, cerrado, y de aviso (goteo) antes de abrir
+  hydrantOn: 1.6, hydrantOff: 1.6, hydrantWarn: .5,
   // racha / multiplicador
   multSteps: [15, 40, 80, 140], multDrop: 2
 };

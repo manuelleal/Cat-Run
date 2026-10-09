@@ -69,6 +69,23 @@ export function install(game) {
     }, undefined, e => { game.models.failed[type] = String(e); done(); }); // si no carga, queda la figura hecha por código
   });
 
+  // Caneca: la figura de Blender viene parada y con tapa de bisagra (nodo `lid`). En la calle va volcada, con la boca hacia el
+  // gato y bastante más grande, y la tapa queda levantada como visera (se mueve sola: core.js anima `lid`).
+  game.on('ready', () => loader.load('modelos/props/caneca.glb', gltf => {
+    gltf.scene.updateMatrixWorld(true);
+    const K = 1.7, body = gltf.scene.getObjectByName('caneca'), lid = gltf.scene.getObjectByName('lid');
+    if (!body?.isMesh || !lid?.isMesh) { game.models.failed.caneca = 'faltan las mallas caneca / lid'; return; }
+    const M = new THREE.Matrix4().makeTranslation(0, .7 * K, -.8 * K).multiply(new THREE.Matrix4().makeScale(K, K, K)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+    const hinge = new THREE.Vector3().setFromMatrixPosition(lid.matrixWorld).applyMatrix4(M);
+    const geo = o => o.geometry.clone().applyMatrix4(o.matrixWorld).applyMatrix4(M);
+    game.protos.caneca = [
+      { geometry: geo(body), material: game.vcMat },
+      { geometry: geo(lid).translate(-hinge.x, -hinge.y, -hinge.z), material: game.vcMat, name: 'lid', position: hinge, rotation: new THREE.Euler(-1.9, 0, 0) }
+    ];
+    game.models.loaded.caneca = 'modelos/props/caneca.glb';
+    if (game.S.state !== 'play' && game.S.state !== 'dying') game.reset();
+  }, undefined, e => { game.models.failed.caneca = String(e); }));
+
   // Panela: el perro ya existe y fx.js anima sus piezas, así que el modelo de Blender no lo reemplaza:
   // se esconde el perro hecho por código y cada pieza nueva se cuelga del pivote que ya se está animando.
   game.on('ready', () => loader.load(PANELA, gltf => {

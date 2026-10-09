@@ -16,8 +16,18 @@
   #bar { flex: 1; max-width: 300px; height: 22px; background: #0006; border: 2px solid #fff; border-radius: 12px; overflow: hidden; }
   #fill { height: 100%; width: 100%; background: var(--good); transition: width .2s, background .2s; }
   #top .sp { flex: 1; }
-  @media (max-width: 520px) { #bar { order: 9; flex-basis: 100%; max-width: none; height: 18px; } #top .sp { display: none; } #top { justify-content: space-between; gap: 8px; } }
-  #top { flex-wrap: wrap; }
+  /* Marcador en un solo renglón: pausa, Bocado (la barra lleva su icono), caneca solo si hay carga, metros y monedas.
+     Los ratones ya se leen en la barra y las sardinas solo importan al perder: no se muestran corriendo. */
+  #bar { position: relative; min-width: 64px; }
+  #bar::after { content: '🐭'; position: absolute; left: 5px; top: 50%; transform: translateY(-52%); font-size: 13px; text-shadow: none; }
+  #bar.full { border-color: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  #bar.full::after { content: '🐭 ¡Bocado!'; font-size: 12px; color: #2a1206; font-family: var(--f-title); }
+  #bocadoPill, #micePill, #lvSard { display: none; }
+  #canecaPill { padding: 4px 8px; }
+  @media (max-width: 520px) {
+    #top { gap: 6px; padding: 10px 10px; } #top .sp { display: none; } #top .pill { font-size: 17px; padding: 3px 9px; }
+    #bar { height: 18px; } #pause { width: 38px; height: 38px; } #lvMeta { font-size: 14px !important; }
+  }
   .pill { background: #1c2740e0; border-radius: 12px; padding: 4px 12px; white-space: nowrap; }
   .pill.gold { color: #ffd23f; }
   #pause { pointer-events: auto; width: 44px; height: 44px; border-radius: 12px; border: 2px solid #fff; background: #1c2740e0;
@@ -98,7 +108,7 @@
     <div id="bar"><div id="fill"></div></div>
     <span class="sp"></span>
     <span class="pill" id="dist">0 m</span>
-    <span class="pill">🐭 <span id="mice">0</span></span>
+    <span class="pill" id="micePill">🐭 <span id="mice">0</span></span>
     <span class="pill gold">🐾 <span id="coins">0</span></span>
   </div>
   <div id="pum"></div>

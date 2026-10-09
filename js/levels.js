@@ -682,8 +682,9 @@ export function install(game) {
     if (rec > dist && rec - dist < 400) items.push([rec - dist, `👑 tu récord en ${Math.ceil(rec - dist)} m`, 0]);
     const cn = game.gen.nextCaneca - dist;
     if (S.canecas < 1 && cn > 0 && cn < 400 && S.heat >= cfg.canecaMinHeat - 5) items.push([cn, `🗑️ caneca en ${Math.ceil(cn)} m`, 1]);
-    const h = nextHito();
-    items.push([h - dist, `🏁 ${h >= 1000 ? (h / 1000) + ' km' : h + ' m'} en ${Math.ceil(h - dist)} m`, 2]);
+    // los hitos de distancia ya no ocupan renglón (los metros están en el marcador y el hito se celebra al llegar):
+    // el renglón solo aparece cuando hay algo cerca que cambia lo que el jugador hace: su récord o una caneca
+    if (!items.length) { metaEl.hidden = true; return; }
     items.sort((a, b) => a[2] - b[2]);
     const best = items.reduce((a, b) => b[0] < a[0] * .6 ? b : a); // el más cercano, salvo empate: manda la prioridad
     if (metaEl.textContent !== best[1]) metaEl.textContent = best[1];

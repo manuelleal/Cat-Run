@@ -528,6 +528,28 @@ El dueño mandó referencias (tipografías de arcade y el logotipo de Clash Roya
 - Hicieron falta tres intentos: en el primero el degradado quedó tapado por el filo blanco (el relleno se pintaba como fondo, debajo de las otras capas) y el logotipo se salía de la pantalla; en el segundo el contorno salió corrido a la derecha, porque el título ocupaba todo el ancho y las capas no estaban centradas igual; el tercero es el que quedó.
 - Visto en captura en formato de celular (`equipo/captura-letras-nuevas.jpg`). Sin revisar a fondo: las pantallas de mapa, tienda, misiones y resultado con la fuente nueva.
 
+### Coordinador — sesión nueva: hidrantes, tope por calle, caneca, marcador y los tres mundos en captura
+
+Retomó desde `CONTINUAR.md` en un chat nuevo. Lo primero fue capturar los tres mundos con el juego corriendo (`game.sim` más una captura): el Pueblo y la Costa se veían bien; en Ciudad Neón Tinto, que es negro, desaparecía contra el asfalto.
+
+- **Hidrante.** Estaba parado en medio del carril y el gato lo atravesaba cuando el chorro estaba cerrado. Ahora va en el borde del andén y echa el chorro de lado sobre un carril de afuera; el ciclo (1,6 s abierto, 1,6 s cerrado, 0,5 s de goteo de aviso) quedó en la tabla de reglas.
+- **Un hallazgo al contar hidrantes:** en una partida salieron 22 y en las tres siguientes ninguno. El generador solo admitía una pieza nueva en filas "de un solo tipo sin huecos", y ninguna fila de muros cumple eso; así que el primer muro sorteado era el único de toda la partida. Corregido: ahora los muros se mezclan.
+- **Tope por calle:** 3 obstáculos por fila, 6 filas y 14 obstáculos por calle, 55 cosas para recoger. Medido en 50 calles por mundo: el máximo bajó de 16–17 a 12–14; la mediana (8–10) no cambió.
+- **Caneca:** la figura de Blender, volcada, 1,7 veces más grande, con la tapa de visera, flecha verde y marcas en el piso.
+- **Marcador:** de tres renglones en celular a uno.
+- **Costa:** menos cocos, gaviotas y lanchas, y más lentos. **Balcones** en la Costa y en Neón. **Neón:** un farol sigue a Tinto.
+- **Bots (humano, 30 semillas, mediana):** Pueblo 59 s, Costa 48 s (antes 37 s), Neón 37 s. El quieto sigue cayendo a los 6 s en los tres.
+
+### Dos validadores para el plan de ideas del dueño
+
+El dueño pegó un plan largo de ideas (personalidad de Tinto, calles con secretos, colecciones, Panela que sorprende, poderes, misiones) y pidió dos agentes que lo validaran antes de hacerlo. Uno lo contrastó con el código y otro con los documentos de diseño y las decisiones vigentes. Coincidieron sin verse:
+
+- Cerca de la mitad del plan ya existe (racha y multiplicador, "por un pelo", Bocado, caneca como escondite, balcones como ruta alta).
+- El plan pide "identidad colombiana" y la decisión vigente del dueño es la contraria.
+- Varias ideas rompen reglas ya medidas: Panela apareciendo delante (la cámara va detrás de ella), puertas que se cierran, poderes que alejan a Panela, eventos al azar.
+- El técnico encontró código muerto: las calles "bonus" se marcan al crearlas y nadie las usa. Activarlas es la forma barata de dar decisiones en los cruces.
+- Propuesta para un día: calles con premio anunciadas en la flecha, tres retos por partida, medidor de racha visible desde el inicio, ladrido y susto cuando Panela se acerca, gestos de Tinto.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.
@@ -572,6 +594,8 @@ El propósito del ejercicio es mostrar cómo trabajan los agentes con herramient
 | Lógica | Un obstáculo que solo se puede esquivar de lado (ni saltando ni agachado) se veía como un montón bajo de bolsas negras: parecía saltable y no se entendía qué era | Lo reportó el dueño con una captura: "ni saltando ni por debajo se puede pasar" | Pasa a ser una pila alta de cajas con un tablero rojo y una equis blanca. Comprobado: saltando o agachado, tropiezo; cambiando de carril, ninguno |
 | Coordinador y agentes | El sonido se desbocaba: las pruebas automáticas simulan miles de cuadros en un instante y cada efecto sonaba de verdad, todos apilados; además el juego seguía sonando con la pestaña oculta y no había tope de sonidos a la vez | Lo reportó el dueño: "suena a lo loco" | Mudo durante la simulación, pausa y silencio al ocultar la pestaña, y máximo seis sonidos simultáneos. Comprobado: 20 segundos simulados, cero sonidos; 30 llamadas seguidas, suenan seis |
 | Varios agentes | Compartían el mismo almacenamiento del navegador y se contaminaron los datos de prueba entre sí | Puntajes y gatos de prueba aparecieron en pestañas ajenas | Cada uno limpió lo suyo; faltó darles un espacio de pruebas separado desde el principio |
+| Lógica (heredado) | El generador solo dejaba entrar un tipo de muro por partida: una condición de "primer encuentro limpio" que ninguna fila de muros podía cumplir | El coordinador contó hidrantes: 22 en una partida y 0 en las tres siguientes | Una fila de un solo tipo de pieza ya cuenta como primer encuentro, tenga huecos o no |
+| Coordinador | Su primera captura de prueba salió tapada por la pantalla de pausa: pausó el juego para congelar la imagen y la pausa abre un panel | Al mirar la captura | Congela el estado sin emitir el evento de pausa |
 
 ## Si este juego fuera a dar mucha plata
 

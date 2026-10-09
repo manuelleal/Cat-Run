@@ -10,17 +10,22 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 - Al probar en el navegador integrado, cerrar la pestaña de pruebas al terminar: el dueño suele tener el juego abierto ahí mismo. `game.sim` ya no hace sonar nada.
 - El navegador integrado no dibuja con la ventana oculta: se prueba con `game.sim(n)` y capturas sueltas. Cada sesión debe usar su propia pestaña.
 
+## Hecho en la sesión del 8 de octubre (segunda)
+
+- **Hidrante:** se para en el borde del andén y echa el chorro de lado sobre un solo carril de afuera (`outer` en `SPEC`); ciclo en `rules.js` (`hydrantOn/Off/Warn`). Donde hay balcón sale una pila de cajas.
+- **Tope de objetos** en `rules.js`: `rowMaxObs` 3, `streetMaxRows` 6, `streetMaxObs` 14, `streetMaxPickups` 55 (las monedas de balcón no cuentan). Medido: máximo 12–14 obstáculos por calle (antes 16–17).
+- **Variedad de muros:** el generador solo dejaba entrar un tipo de muro por partida (por eso unas partidas salían llenas de hidrantes y otras sin ninguno). Corregido en `placeRow`.
+- **Caneca:** usa `modelos/props/caneca.glb` volcada, 1,7 veces más grande, con la tapa como visera, flecha verde encima y marcas en el piso. Ya no se puede saltar: solo agachado.
+- **Marcador en un renglón:** pausa, barra de Bocado, caneca (solo con carga), metros y monedas. El renglón de próxima meta solo sale cuando hay récord o caneca cerca.
+- **Costa suavizada** y **balcones en los tres mundos.** En Ciudad Neón un farol sigue a Tinto (antes no se veía contra el asfalto).
+- Bot humano, 30 semillas (mediana): Pueblo 59 s, Costa 48 s (antes 37 s), Neón 37 s (la meta era 40–100: queda un poco dura).
+
 ## Pendiente, en orden
 
-1. **Hidrantes y cantidad de objetos por calle** (pedido del dueño, sin empezar): revisar la lógica del hidrante (`piece('hidrante')` y `SPEC.hidrante/chorro` en `js/core.js`): dónde se para, hacia dónde sale el chorro y cada cuánto; y poner un tope claro de cuántos objetos puede haber en una calle y por fila. Hoy no hay tope explícito.
-2. **Que la caneca de basura destaque:** se ve pequeña y se confunde con un obstáculo. Usar `modelos/props/caneca.glb` (tapa `lid`, abre con `rotation.x` negativo), más grande y con una señal de que hay que agacharse.
-3. **Simplificar el marcador:** en pantallas angostas ocupa casi media pantalla (pausa, Bocado, caneca, distancia, ratones, monedas, sardinas, barra, próxima meta).
-4. **Revisar la Costa y la Ciudad Neón en capturas** con las reglas nuevas; solo se ha mirado el Pueblo.
-5. **Suavizar la Costa:** un jugador medio dura 37 s (62 s en el Pueblo).
-6. Balcones en la Costa y la Ciudad (hoy solo en el Pueblo).
-7. Modelar en Blender los obstáculos nuevos que siguen hechos por código (contenedor, poste, zanja, tubo, hidrante, andamio, pila de cajas).
-8. Lo que quedó fuera de los diseños: objetos temporales, misiones encadenadas, álbum, sonido, cámara lenta, "por un pelo" más frecuente, precios de los gatos (se ganan ~190 monedas por minuto).
-9. La entrada de cada partida: Tinto tumbando algo y Panela saliendo detrás.
+1. Modelar en Blender los obstáculos que siguen hechos por código (contenedor, poste, zanja, tubo, hidrante, andamio, pila de cajas).
+2. Lo que quedó fuera de los diseños: objetos temporales, misiones encadenadas, álbum, sonido, cámara lenta, "por un pelo" más frecuente, precios de los gatos (se ganan ~190 monedas por minuto).
+3. La entrada de cada partida: Tinto tumbando algo y Panela saliendo detrás.
+4. Plan de ideas del dueño (validado por dos agentes; ver la última entrada de `EQUIPO.md`).
 
 ## Decisiones del dueño que siguen vigentes
 

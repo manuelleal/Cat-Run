@@ -437,11 +437,11 @@ export function install(game) {
   const planea = (o, t, dt) => {
     o.alas.scale.y = Math.sin(t * 11 + o.ph) * 1.5;
     o.mesh.position.y = 1.5 + Math.sin(t * 3 + o.ph) * .08;
-    if (cerca(o, 50)) { o.s -= 9 * dt; o.mesh.position.z = -o.s; }
+    if (cerca(o, 44)) { o.s -= 6 * dt; o.mesh.position.z = -o.s; }
   };
 
   fila('cangrejo', (seg, s, lane, y = 0) => { const o = addObstacle(seg, 'cangrejo', s, lane, y); o.ph = rand(0, TAU); o.x0 = o.x; o.seg = seg; o.animate = y > 0 ? null : escurre; return o; });
-  fila('coco', (seg, s, lane) => { const o = pon(seg, 'coco', s, lane); o.mesh.position.y = .37; o.animate = rueda(6, 40); return o; });
+  fila('coco', (seg, s, lane) => { const o = pon(seg, 'coco', s, lane); o.mesh.position.y = .37; o.animate = rueda(4, 34); return o; });
   fila('sombrilla', (seg, s, lane) => { const o = pon(seg, 'sombrilla', s, lane); o.animate = (o, t) => { o.mesh.rotation.z = Math.sin(t * 1.6 + o.ph) * .035; }; return o; });
   fila('lancha', (seg, s, lane) => pon(seg, 'lancha', s, lane));
   fila('red', (seg, s) => { const o = pon(seg, 'red', s, 0); o.animate = (o, t) => { o.mesh.rotation.x = Math.sin(t * 1.8 + o.ph) * .04; }; return o; });
@@ -672,9 +672,10 @@ export function install(game) {
     id: 'playa', name: 'La Costa', emoji: '🏝️', desc: 'Malecón de tablas, cangrejos, cocos que ruedan y gaviotas', dificultad: 2,
     sky: ['#1493e0', '#86d8f5', '#e6fbf4'], fog: 0xdff4ee, fogRange: [75, 220], hemi: [0xdff6ff, 0xe8d6a0, 2.4], sun: [0xfff4d0, 2.9],
     tints: [0xffd166, 0xff8fa3, 0x7fdbda, 0x9ad0ff, 0xffffff, 0xffb37a, 0xb8f0a0], roof: PAJA,
-    sidewalk: 0xdcc79a, ground: 0xecd9a6, crossing: 0xb98d5a, heights: [0], food: 'cangrejo',
+    sidewalk: 0xdcc79a, ground: 0xecd9a6, crossing: 0xb98d5a, heights: [0], food: 'cangrejo', balconies: true,
     pieces: { alcantarilla: 4, senora: 6, carreta: 5, caja: 4, basura: 2, bolsas: 4, contenedor: 4, poste: 4, zanja: 4, tuboc: 3, hidrante: 3, andamio: 8,
-      coco: 13, sombrilla: 10, lancha: 8, red: 9, surf: 11, castillo: 10, pelota: 7, gaviota: 12 },
+      // suavizada: lo que viene hacia el gato (coco, gaviota) y lo duro (lancha) pesan menos; un jugador medio duraba 37 s aquí y 62 s en el Pueblo
+      coco: 7, sombrilla: 10, lancha: 5, red: 9, surf: 11, castillo: 12, pelota: 7, gaviota: 6 },
     facade: fachadaPlaya, road: calzadaPlaya,
     side(st, seg, side, s0, end) {
       let s = s0, k = side > 0 ? 1 : 0;
@@ -686,6 +687,7 @@ export function install(game) {
           const rows = Math.random() < .4 ? 2 : 1, h = rows * 3.2, bw = w - 1.5;
           tint(part(BOX, F.playa[rows], 8, h, bw, side * 12.5, h / 2, z, st), pick(playa.tints));
           tejado(st, PAJA, side * 12.5, z, 8, bw, h, .5, 1.1);
+          if (game.balconyAt(seg, side, s + w / 2)) { s += w; continue; } // por aquí pasa una pasarela elevada: sin toldo ni barra
           part(BOX, pick(toldoPlaya), 3, .12, bw, side * 7.4, 2.95, z, st).rotation.z = side * .12;
           for (const d of [-1, 1]) part(BOX, 0x8a6a40, .14, 2.9, .14, side * 6.2, 1.45, z + d * (bw / 2 - .3), st);
           part(BOX, 0x8a5a2b, .8, 1, bw * .6, side * 8.05, .7, z, st); // barra con frutas
@@ -718,6 +720,7 @@ export function install(game) {
       part(CYL, 0x333842, 3.4, .3, 3.4, fx, 18.15, fz, st); glow(CYL, 0xfff2a8, 1.8, 1.6, 1.8, fx, 19.1, fz, st); part(EAR, 0xd8433b, 2.8, 1.4, 2.8, fx, 20.6, fz, st);
       for (let s = seg.first ? 6 : 30; s < seg.L - 20; s += 55) { // astas con bandera de playa
         const side = pick([-1, 1]);
+        if (game.balconyAt(seg, side, s)) continue;
         part(CYL, 0xf0f0f0, .12, 6, .12, side * 7.05, 3, -s, st);
         banderas.push([side * 7.05, 5.5, -s]);
       }
@@ -792,7 +795,7 @@ export function install(game) {
 
   /* ================= Mundo 3 · Ciudad Neón ================= */
   const NEON = [0x39e6ff, 0xff3ec8, 0xb06bff, 0xffd23f];
-  function torre(st, x, z, sx, sz, side) {
+  function torre(st, x, z, sx, sz, side, seg) {
     const alta = Math.random() < .45, h = alta ? rand(24, 34) : rand(13, 20), fx = side * (Math.abs(x) - sx / 2 - .04);
     tint(part(BOX, F.neon[alta ? 1 : 0], sx, h, sz, x, h / 2, z, st), pick(neon.tints));
     if (Math.random() < .5) { // remate con antena y baliza
@@ -805,7 +808,7 @@ export function install(game) {
     glow(BOX, pick(NEON), .12, h, .12, fx, h / 2, z - sz / 2 + .12, st); // tira de neón en la arista
     if (Math.random() < .75) { // rótulo: de bandera (se lee de frente al correr) o pegado a la fachada
       const y = rand(4.6, 9), gi = Math.floor(rand(0, 8)), m = Math.random() < .3 ? signB : signA;
-      if (Math.random() < .6) {
+      if (Math.random() < .6 && !(seg && game.balconyAt(seg, side, -z))) {
         part(rotGeo[gi], m, 3.2, .8, 1, side * 5.8, y, z, st);
         part(BOX, 0x23283a, 1.7, .08, .08, side * 6.7, y + .46, z, st);
       } else part(rotGeo[gi], m, 4.6, 1.15, 1, fx, y, z, st).rotation.y = -side * PI / 2;
@@ -814,7 +817,7 @@ export function install(game) {
   const neon = {
     id: 'neon', name: 'Ciudad Neón', emoji: '🌃', desc: 'Noche de lluvia: motos de frente, drones, láseres y relámpagos', dificultad: 3,
     sky: ['#04030d', '#150c33', '#43185a'], fog: 0x1b1038, fogRange: [38, 140], hemi: [0x8f9cff, 0x4a2c66, 1.7], sun: [0xff8ad8, 1.4],
-    tints: [0x2a2f4a, 0x3a2a55, 0x1f3550, 0x40304a, 0x2b2b3a], roof: 0x8a1f6a, sidewalk: 0x3a3d52, ground: 0x0d0e16, crossing: 0x1c1d2a, heights: [0],
+    tints: [0x2a2f4a, 0x3a2a55, 0x1f3550, 0x40304a, 0x2b2b3a], roof: 0x8a1f6a, sidewalk: 0x3a3d52, ground: 0x0d0e16, crossing: 0x1c1d2a, heights: [0], balconies: true,
     pieces: { valla: 6, alcantarilla: 8, carro: 8, bus: 8, caja: 4, basura: 2, cinta: 4, bolsas: 5, contenedor: 8, poste: 4, zanja: 5, tuboc: 4, hidrante: 4, andamio: 7,
       moto: 16, dron: 12, barrera: 10, laser: 12, charco: 10, zigzag: 10 },
     facade: fachadaNeon, road: calzadaNeon,
@@ -823,10 +826,11 @@ export function install(game) {
       while (s < end - .1) {
         let w = pick([10, 12, 14]);
         if (end - s - w < 8) w = end - s;
-        torre(st, side * (HALF + DEPTH / 2), -(s + w / 2), DEPTH, w, side);
+        torre(st, side * (HALF + DEPTH / 2), -(s + w / 2), DEPTH, w, side, seg);
         s += w;
       }
       for (let t = Math.max(s0, 12) + (side > 0 ? 0 : 16); t < end - 4; t += 32) { // farolas de neón
+        if (game.balconyAt(seg, side, t) || game.balconyAt(seg, side, t + 8)) continue;
         part(CYL, 0x23283a, .16, 5.2, .16, side * 7, 2.6, -t, st);
         part(BOX, 0x23283a, 1.6, .1, .1, side * 6.3, 5.2, -t, st);
         glow(BOX, side > 0 ? 0x39e6ff : 0xff3ec8, 1.2, .1, .3, side * 5.9, 5.1, -t, st);
@@ -840,6 +844,7 @@ export function install(game) {
       const holos = [];
       for (let k = 1; k <= 3; k++) {
         const side = k % 2 ? 1 : -1, s = seg.L * k / 4 + rand(-8, 8);
+        if (game.balconyAt(seg, side, s)) continue;
         part(CYL, 0x23283a, .9, .25, .9, side * 6.1, .32, -s, st);
         holos.push([side * 6.1, 4.3, -s, Math.floor(rand(0, 8))]);
       }
@@ -897,6 +902,10 @@ export function install(game) {
     },
     clima(t, dt) {
       llueve(dt);
+      // Tinto es negro y la calle también: un farol lo sigue desde atrás y arriba, y un halo en el piso marca dónde está
+      const c = game.cat.position;
+      foco.position.set(c.x, c.y + 3.4, c.z).addScaledVector(game.cur.dir, -2.6);
+      halo.position.set(c.x, .06, c.z); halo.rotation.y = game.cur.yaw;
       signA.color.setScalar(.86 + .14 * Math.sin(t * 3));
       signB.color.setScalar(Math.random() < .07 ? .2 : 1); // rótulos que fallan
       proxRayo -= dt;
@@ -967,12 +976,14 @@ export function install(game) {
     }
   }
   for (const o of [lluvia, polvo, ...aves.map(a => a.m)]) { o.frustumCulled = false; o.visible = false; scene.add(o); }
+  const foco = new T.PointLight(0xcfeaff, 60, 11, 1.6), halo = new T.Mesh(DISC, luz(0x8fe9ff, .28));
+  halo.scale.set(1.5, 1, 2.1); foco.visible = halo.visible = false; scene.add(foco, halo);
 
   const mios = new Set([pueblo, playa, neon]);
   game.on('world', w => {
     const id = mios.has(w) ? w.id : '';
     if (!id) fondo = null;
-    lluvia.visible = id === 'neon';
+    lluvia.visible = foco.visible = halo.visible = id === 'neon';
     polvo.visible = id === 'pueblo' || id === 'playa';
     polvo.material = id === 'playa' ? brisaMat : mariposaMat;
     for (const a of aves) a.m.visible = polvo.visible;
