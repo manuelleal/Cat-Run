@@ -28,7 +28,7 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 
 1. Modelar en Blender los obstáculos que siguen hechos por código (contenedor, poste, zanja, tubo, hidrante, andamio, pila de cajas).
 2. Lo que quedó fuera de los diseños: objetos temporales, misiones encadenadas, álbum, sonido, cámara lenta, precios de los gatos (se ganan ~190 monedas por minuto).
-3. La entrada de cada partida: Tinto tumbando algo y Panela saliendo detrás.
+3. (Hecho) La entrada de cada partida: Tinto tumba una matera y Panela sale detrás (`intro` en `js/fx.js`).
 4. Del plan de ideas del dueño queda: disfraces y álbum. Los retos por partida ya están (`RETOS` en `js/levels.js`).
 
 ## Decisiones del dueño que siguen vigentes

@@ -605,6 +605,10 @@ El dueño dejó la sesión corriendo sola. Dos cosas:
 
 Bots, 15 partidas, mediana, humano / girador: Costa 54 / 68 s, Neón 46 / 54 s, Pueblo 46 / 60 s (girador del Pueblo con 10). El quieto, 6 s.
 
+### Coordinador — la entrada de cada partida
+
+Al arrancar, Tinto pasa rozando una matera puesta sobre un cajón y la tumba ("¡CRASH!"); Panela, que venía lejos, entra al cuadro por detrás ladrando ("¡Tintooo!"). Dura poco más de un segundo y es solo decorado: la partida ya está corriendo y la primera fila sigue a 60 m, así que no cambia reglas ni tiempos. Visto en tres capturas (0,35 s, 0,73 s y 1,25 s); el quieto sigue cayendo a los 6 s.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.

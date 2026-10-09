@@ -552,7 +552,7 @@ export function install(game) {
     const sq = clamp(dogSq.x, .45, 1.5), xz = dBase / Math.sqrt(sq);
     dog.scale.set(xz, dBase * sq, xz * stretchZ);
     dog.position.y = y;
-    dog.position.addScaledVector(fwd, clamp(dogLunge.x, -.5, 1.1) - back);
+    dog.position.addScaledVector(fwd, clamp(dogLunge.x, -.5, 1.1) - back - introBack);
     dog.rotation.set(pitch - clamp(dogLunge.x, -.3, 1) * .12, p.yaw + clamp(S.dogOff * .09, -.5, .5), dogRoll.x);
 
     head.rotation.set(headX, 0, headZ);
@@ -752,6 +752,31 @@ export function install(game) {
     comboPunch.v += 2;
   });
   const milesShown = new Set();
+  // Entrada de cada partida: Tinto pasa rozando una matera sobre un cajón y la tumba; Panela, que venía lejos, sale detrás ladrando.
+  // Es solo decorado (la partida ya corre y la primera fila está a 60 m): no cambia reglas ni tiempos.
+  let intro = null, introBack = 0;
+  on('start', () => {
+    if (intro) scene.remove(intro.g);
+    const g = new THREE.Group(), pot = new THREE.Group(), c = game.cur;
+    part(geo.BOX, 0x8a5a2b, .9, .9, .9, 0, .45, 0, g);
+    part(geo.CYL, 0xb5653a, .6, .55, .6, 0, .28, 0, pot); part(geo.SPH, 0xe8456b, .7, .6, .7, 0, .75, 0, pot); part(geo.SPH, 0x3f9a4f, .5, .4, .5, .15, .62, .1, pot);
+    pot.position.set(0, .9, 0); g.add(pot);
+    g.position.copy(c.origin).addScaledVector(c.dir, 6).addScaledVector(c.right, 1.7); g.rotation.y = c.yaw;
+    scene.add(g);
+    intro = { g, pot, t: 0, hit: false, barked: false }; introBack = 7;
+  });
+  on('frame', ({ dt }) => {
+    if (!intro || !dt) return;
+    const i = intro; i.t += dt;
+    introBack = Math.max(0, introBack - dt * 5);
+    if (i.t > .38) {
+      const u = Math.min(1, (i.t - .38) / .45);
+      if (!i.hit) { i.hit = true; trauma = Math.max(trauma, .35); const q = i.g.position; sparkle(q.x, 1.5, q.z, 10, COL.orange, COL.white, 5, .8); floatText('¡CRASH!', q.x, 2.4, q.z, 'red', .8, 50, 1); }
+      i.pot.rotation.z = -u * u * 1.9; i.pot.position.set(u * .9, .9 - u * u * .72, 0);
+    }
+    if (i.t > .9 && !i.barked) { i.barked = true; barkT = 0; if (!game.sub) { game.bark(); floatText('¡Tintooo!', dog.position.x, 3.1, dog.position.z, 'gold', .9, 46); } }
+    if (i.t > 4) { scene.remove(i.g); intro = null; }
+  });
   // cada escalón de dificultad se anuncia: que se note que va más rápido
   let tierShown = 0;
   on('start', () => { tierShown = 0; });
