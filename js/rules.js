@@ -3,8 +3,8 @@
 // Nadie escribe `cfg` directamente: se lee `cfg.clave` (vista derivada) y se cambia con rules.layer() o rules.mod().
 
 export const BASE = {
-  // movimiento
-  baseSpeed: 15, accel: .10, maxSpeed: 32, jumpV: 11.5, gravity: 34, airJumps: 0, slideTime: .85, laneSnap: 14, inputBuffer: .15,
+  // movimiento (accel .13 y tope 34, antes .10 y 32: a un jugador que lo probó no se le notaba que fuera más rápido al avanzar)
+  baseSpeed: 15, accel: .13, maxSpeed: 34, jumpV: 11.5, gravity: 34, airJumps: 0, slideTime: .85, laneSnap: 14, inputBuffer: .15,
   // modelo de fallo: un tropiezo abre una ventana de peligro; otro tropiezo dentro de ella es captura; choque duro de frente es captura
   // dangerTime 7 (el diseño decía 6): con filas de hasta 1,9 s, tres filas más el frenazo pueden pasar de 6 s y el quieto "espera a que pase"
   invuln: 1.0, hitSlow: .45, dangerTime: 7, dangerGap: 3.6, dangerFade: 2.5, hardCrash: true, gapMax: 6.5, // Panela más cerca en calma (Tinto se veía muy chico al fondo) y no tan encima en peligro (lo tapaba)

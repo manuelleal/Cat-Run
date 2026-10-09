@@ -751,6 +751,15 @@ export function install(game) {
     comboPunch.v += 2;
   });
   const milesShown = new Set();
+  // cada escalón de dificultad se anuncia: que se note que va más rápido
+  let tierShown = 0;
+  on('start', () => { tierShown = 0; });
+  on('update', () => {
+    if (S.state !== 'play' || game.sub) return;
+    let t = 0; cfg.tierHeat.forEach((h, i) => { if (S.heat >= h) t = i; });
+    if (t > tierShown) { showBanner('¡MÁS RÁPIDO!'); fovS.v += 18; linesK = Math.max(linesK, 1); }
+    tierShown = t;
+  });
   on('dying', () => { mode = 'dying'; T = 0; caught = true; landed = false; cine.fresh = true; flip.t = -1; combo = 0; setCombo(0); });
   on('over', e => {
     const won = !!(e && e.won);

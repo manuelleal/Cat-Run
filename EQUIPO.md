@@ -607,6 +607,7 @@ El propósito del ejercicio es mostrar cómo trabajan los agentes con herramient
 | Varios agentes | Compartían el mismo almacenamiento del navegador y se contaminaron los datos de prueba entre sí | Puntajes y gatos de prueba aparecieron en pestañas ajenas | Cada uno limpió lo suyo; faltó darles un espacio de pruebas separado desde el principio |
 | Lógica (heredado) | El generador solo dejaba entrar un tipo de muro por partida: una condición de "primer encuentro limpio" que ninguna fila de muros podía cumplir | El coordinador contó hidrantes: 22 en una partida y 0 en las tres siguientes | Una fila de un solo tipo de pieza ya cuenta como primer encuentro, tenga huecos o no |
 | Coordinador | Su primera captura de prueba salió tapada por la pantalla de pausa: pausó el juego para congelar la imagen y la pausa abre un panel | Al mirar la captura | Congela el estado sin emitir el evento de pausa |
+| Coordinador | Al subir la aceleración puso un comentario en mitad de una línea de la tabla de reglas y borró sin querer la gravedad, el salto y otros cuatro valores: el gato quedaba flotando y nada lo chocaba. Iba a publicarse | El bot "humano" duró 300 s sin un solo choque | Movió el comentario; el bot quieto volvió a caer a los 6 s |
 
 ## Si este juego fuera a dar mucha plata
 

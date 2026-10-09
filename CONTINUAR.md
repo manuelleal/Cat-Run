@@ -20,7 +20,7 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 - **Costa suavizada** y **balcones en los tres mundos.** En Ciudad Neón un farol sigue a Tinto (antes no se veía contra el asfalto).
 - Bot humano, 30 semillas (mediana): Pueblo 59 s, Costa 48 s (antes 37 s), Neón 37 s (la meta era 40–100: queda un poco dura).
 
-- Después: calles laterales con premio anunciadas en la flecha, racha visible desde x1, ladrido y susto con Panela cerca, gestos de Tinto, cámara más cerca y flechas de GIRAR más chicas. **Sin publicar: el dueño quiere probarlo antes** (`git push origin main main:gh-pages` cuando dé el visto bueno).
+- Después: calles laterales con premio anunciadas en la flecha, racha visible desde x1, ladrido y susto con Panela cerca, gestos de Tinto, cámara más cerca y flechas de GIRAR más chicas. Además acelera más al avanzar (`accel` .13, tope 34) y anuncia cada escalón con "¡MÁS RÁPIDO!". Publicado a pedido del dueño.
 
 ## Pendiente, en orden
 
