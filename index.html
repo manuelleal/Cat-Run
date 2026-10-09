@@ -47,7 +47,8 @@
   button.hint { top: 46%; z-index: 6; padding: 6px 10px 6px; border-radius: 14px; border: 2px solid #ffe14f; background: #1c2740d0; pointer-events: none; cursor: pointer;
     font-size: clamp(26px, 7.5vw, 40px); box-shadow: 0 3px 0 #000a, 0 0 12px #ffe14f; }
   button.hint small { font-size: .4em; text-shadow: 0 2px 0 #000; }
-  #lvMeta[hidden] { display: none !important; }
+  #lvMeta[hidden], #lvReto[hidden] { display: none !important; }
+  @media (max-width: 520px) { #lvReto { top: 54px !important; left: 10px !important; font-size: 13px !important; } }
   /* calle con premio: la flecha lo anuncia antes de girar */
   button.hint em { display: none; font-style: normal; font-size: .36em; margin-top: 4px; padding: 2px 6px; border-radius: 8px; background: var(--good); color: #0e1120; text-shadow: none; white-space: nowrap; }
   button.hint.bonus em { display: block; }

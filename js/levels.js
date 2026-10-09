@@ -706,6 +706,56 @@ export function install(game) {
   });
   game.on('hud', drawMeta);
   game.on('start', () => { metaEl.hidden = true; });
+
+  /* ---------- Retos por partida (solo modo infinito) ----------
+     Tres retos seguidos, de fácil a difícil, con monedas al instante. Discretos: una ficha chica bajo el botón de pausa
+     (no ocupa renglón del marcador); al empezar un reto dice qué hay que hacer durante 3 s y luego queda solo el conteo.
+     No castigan: si no se cumplen, no pasa nada. */
+  const RETOS = {
+    mice: { i: '🐭', t: n => `atrapa ${n} ratones`, v: () => S.mice },
+    coins: { i: '🐾', t: n => `junta ${n} monedas`, v: () => S.coins },
+    dist: { i: '🏃', t: n => `corre ${n} m más`, v: () => Math.floor(S.dist), u: ' m' },
+    pass: { i: '⬇', t: n => `pasa agachado ${n} veces`, v: () => S.passes },
+    turns: { i: '↪', t: n => `gira ${n} veces`, v: () => run.turns },
+    mult: { i: '🔥', t: n => `llega a racha x${n}`, v: () => S.mult, abs: true }
+  };
+  const RETO_POOL = [
+    [['mice', 3], ['coins', 25], ['dist', 250], ['pass', 2]],
+    [['mice', 6], ['coins', 50], ['turns', 2], ['pass', 4], ['mult', 3]],
+    [['mice', 10], ['coins', 90], ['turns', 3], ['dist', 600], ['mult', 4]]
+  ];
+  const RETO_PAGA = [15, 25, 40];
+  const retoEl = el('div', 'pill', ''); retoEl.id = 'lvReto'; retoEl.hidden = true;
+  retoEl.style.cssText = 'position:absolute;left:12px;top:62px;font-size:14px;padding:3px 10px;opacity:.88;transition:background .25s,transform .25s;transform-origin:0 50%';
+  game.ui.top.after(retoEl);
+  let reto = null;
+  function nextReto(slot) {
+    if (slot >= RETO_POOL.length) { reto = null; retoEl.hidden = true; return; }
+    const prev = reto?.k, opts = RETO_POOL[slot].filter(([k]) => k !== prev), [k, n] = opts[Math.floor(Math.random() * opts.length)], R = RETOS[k];
+    reto = { slot, k, n, from: R.abs ? 0 : R.v(), intro: S.time + 3, done: 0, shown: '' };
+  }
+  function drawReto() {
+    if (!run || run.def || !reto || (S.state !== 'play' && S.state !== 'rescue')) { retoEl.hidden = true; return; }
+    const R = RETOS[reto.k];
+    if (reto.done) { // cumplido: se queda un momento en verde y pasa al siguiente
+      if (S.time > reto.done) nextReto(reto.slot + 1);
+      return;
+    }
+    const v = Math.min(reto.n, R.v() - reto.from);
+    if (v >= reto.n) {
+      const pay = RETO_PAGA[reto.slot];
+      reto.done = S.time + 1.6;
+      retoEl.textContent = `✔ Reto cumplido +${pay} 🐾`; retoEl.style.background = '#1f9d5ce0'; retoEl.style.transform = 'scale(1.15)';
+      game.coins(pay, 'reto'); beep(880, .12, 'triangle', .07, 400);
+      return;
+    }
+    const txt = S.time < reto.intro ? `Reto ${reto.slot + 1}/3: ${R.t(reto.n)}` : R.abs ? `${R.i} x${R.v()} → x${reto.n}` : `${R.i} ${v}/${reto.n}${R.u || ''}`;
+    if (txt !== reto.shown) { reto.shown = txt; retoEl.textContent = txt; retoEl.style.background = ''; retoEl.style.transform = S.time < reto.intro ? 'scale(1.1)' : ''; }
+    retoEl.hidden = false;
+  }
+  game.on('start', () => { reto = null; retoEl.hidden = true; if (run && !run.def) nextReto(0); });
+  game.on('update', drawReto);
+  game.on('over', () => { retoEl.hidden = true; });
   game.on('pause', v => {
     const on = !!v && S.state === 'play';
     if (on) renderPause();

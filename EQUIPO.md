@@ -573,6 +573,10 @@ La calle lateral no se ve antes de girar y su primera fila quedaba a menos de un
 
 Bots, 30 partidas, mediana, girador / humano: Neón 51 / 43 s, Costa 65 / 59 s, Pueblo 53 / 47 s. Girar ya no cuesta; sale unos seis segundos mejor en los tres mundos, dentro del margen de la medición.
 
+### Coordinador — retos por partida, discretos
+
+El dueño los había dejado fuera para no llenar el marcador y los pidió después "discretos". Son tres retos seguidos por partida en el modo infinito (ratones, monedas, metros, pasar agachado, girar, racha), de fácil a difícil, con 15, 25 y 40 monedas al instante. Van en una ficha chica bajo el botón de pausa: tres segundos dice qué hay que hacer y luego queda solo el conteo. No castigan. Probado en una partida simulada de 150 s: cumplió el primero a los 16 s y el segundo a los 69 s.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.
