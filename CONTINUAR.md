@@ -22,12 +22,12 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 
 - Después: calles laterales con premio anunciadas en la flecha, racha visible desde x1, ladrido y susto con Panela cerca, gestos de Tinto, cámara más cerca y flechas de GIRAR más chicas. Además acelera más al avanzar (`accel` .13, tope 34) y anuncia cada escalón con "¡MÁS RÁPIDO!". Publicado a pedido del dueño.
 
-- Tipos de calle (`kindFor`, `alleySide`, `plazaSide`, `marketSide` en `js/core.js`): callejón, mercado, plaza y tejados; la flecha de GIRAR los anuncia. Retos por partida en `js/levels.js`. El callejón ya es de dos carriles (`seg.closed`, `gen.closed`). Pendiente: en la Costa girar rinde demasiado (93 s contra 50 s con 20 partidas).
+- Tipos de calle (`kindFor`, `alleySide`, `plazaSide`, `marketSide` en `js/core.js`): callejón, mercado, plaza y tejados; la flecha de GIRAR los anuncia. Retos por partida en `js/levels.js`. El callejón ya es de dos carriles (`seg.closed`, `gen.closed`). Las probabilidades de cada tipo están en `KIND_ODDS` (`game.KIND_ODDS` para experimentar). "Por un pelo" ya sale unas 4 veces por minuto.
 
 ## Pendiente, en orden
 
 1. Modelar en Blender los obstáculos que siguen hechos por código (contenedor, poste, zanja, tubo, hidrante, andamio, pila de cajas).
-2. Lo que quedó fuera de los diseños: objetos temporales, misiones encadenadas, álbum, sonido, cámara lenta, "por un pelo" más frecuente, precios de los gatos (se ganan ~190 monedas por minuto).
+2. Lo que quedó fuera de los diseños: objetos temporales, misiones encadenadas, álbum, sonido, cámara lenta, precios de los gatos (se ganan ~190 monedas por minuto).
 3. La entrada de cada partida: Tinto tumbando algo y Panela saliendo detrás.
 4. Del plan de ideas del dueño queda: disfraces y álbum. Los retos por partida ya están (`RETOS` en `js/levels.js`).
 

@@ -596,6 +596,15 @@ Un muro se come un carril entero (al azar, izquierdo o derecho) y quedan dos. El
 
 Bots, 20 partidas, mediana, girador / humano: Neón 47 / 41 s, Costa 93 / 50 s, Pueblo 53 s / sin terminar. El quieto sigue en 6 s. En la Costa girar rinde demasiado; queda por ajustar.
 
+### Coordinador — solo hasta las once: por qué girar rendía de más, y el "por un pelo"
+
+El dueño dejó la sesión corriendo sola. Dos cosas:
+
+- **Girar rendía de más en la Costa.** En vez de adivinar, se midió quitando un tipo de calle a la vez (30 partidas del bot que gira): con todos, 64 s; sin plaza, 74; sin tejados, 71; sin callejón, 75; sin mercado, 78; sin ninguno, 57. Ningún tipo era el culpable: todos juntos sumaban unos doce segundos y el giro en sí otros siete. Se bajó la frecuencia de las calles especiales (de tres de cada cuatro laterales a poco más de la mitad), que además las deja como algo especial.
+- **"Por un pelo" casi nunca salía** (0,3–0,5 por minuto contra una meta de 2 a 5). La causa era de geometría: entre carriles hay 3 m y las piezas miden 2,6, así que pasar por el carril de al lado nunca contaba como roce. Ahora cuenta quitarse del carril del obstáculo en el último tercio de segundo, y el salto justo tiene un poco más de margen. Medido: unos 4 por minuto con el bot humano.
+
+Bots, 15 partidas, mediana, humano / girador: Costa 54 / 68 s, Neón 46 / 54 s, Pueblo 46 / 60 s (girador del Pueblo con 10). El quieto, 6 s.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.

@@ -916,12 +916,16 @@ function sowBalconies(seg) {
   }
 }
 // Tipos de calle. Las laterales salen más variadas (y la flecha lo anuncia); de frente, solo de vez en cuando.
+const KIND_ODDS = { side: { callejon: .3, mercado: .12, tejado: .08, plaza: .05 }, ahead: { mercado: .12, plaza: .08, tejado: .1 } }; // probabilidad de cada tipo; el resto son calles normales
 const KIND_LABEL = { callejon: '🐭 callejón', mercado: '🧺 mercado', plaza: '⛲ plaza', tejado: '🏠 tejados' };
 function kindFor(d) {
   if (sub || world.tunnel) return '';
-  const r = Math.random(), bal = W('balconies');
-  if (d !== 0) return r < .4 ? 'callejon' : r < .55 ? 'mercado' : r < .68 && bal ? 'tejado' : r < .75 ? 'plaza' : '';
-  return r < .12 ? 'mercado' : r < .2 ? 'plaza' : r < .3 && bal ? 'tejado' : '';
+  let r = Math.random();
+  for (const [k, w] of Object.entries(d !== 0 ? KIND_ODDS.side : KIND_ODDS.ahead)) {
+    if (k === 'tejado' && !W('balconies')) continue;
+    if ((r -= w) < 0) return k;
+  }
+  return '';
 }
 // callejón: los muros se cierran sobre la calzada (sin andén), con ropa tendida contra la pared, cajas y faroles
 function alleySide(st, seg, side, a, end) {
@@ -1089,7 +1093,7 @@ function reset() {
     danger: 0, bocado: 0, bocados: 0, canecas: 0, heat: cfg.heatStart, chase: 0, stumbles: 0, cause: '', hardCause: false, health: 100,
     racha: 0, mult: 1, bonus: 0, nearmiss: 0, passes: 0, lastCaneca: -1, rescued: false, rescueT: 0, multBest: 1 });
   camYaw = 0; flying = [];
-  Object.assign(p, { s: 0, x: 0, lane: 0, prevLane: 0, y: 0, gy: 0, vy: 0, h: 1.3, slide: 0, fall: 0, inv: 0, slow: 1, yaw: 0, turnQ: 0, lastDir: 0, lastT: 0, air: 0, want: null, nearT: 0 });
+  Object.assign(p, { s: 0, x: 0, lane: 0, prevLane: 0, y: 0, gy: 0, vy: 0, h: 1.3, slide: 0, fall: 0, inv: 0, slow: 1, yaw: 0, turnQ: 0, lastDir: 0, lastT: 0, air: 0, want: null, nearT: 0, laneAt: -9 });
   prev = null;
   genReset();
   cur = buildSegment(new THREE.Vector3(), 0, true, 0);
@@ -1149,7 +1153,7 @@ function move(dir) {
   if (Math.abs(lane) === 2 && !canClimb(lane)) lane = p.lane;
   if (cur.closed && lane === cur.closed) lane = p.lane; // callejón: de ese lado hay muro
   lane = clamp(lane, -2, 2);
-  if (lane !== p.lane) { p.prevLane = p.lane; p.lane = lane; emit('lane', dir); }
+  if (lane !== p.lane) { p.prevLane = p.lane; p.lane = lane; p.laneAt = S.time; emit('lane', dir); }
 }
 function turn(dir) {
   const toCross = cur.L - p.s;
@@ -1484,8 +1488,9 @@ function update(dt) {
     const over = p.y >= o.y1, under = p.y + p.h <= o.y0, inLane = dx <= o.hw + .4;
     if (!o.collect && o.dmg > 0 && crossing) { // ¿pasó por un pelo o por debajo?
       if (inLane && under && o.y0 > 0) passed(o);
-      else if (inLane && over && p.y - o.y1 < .5 && o.y1 > .3) nearmiss(o, 'arriba');
-      else if (!inLane && !o.move && dx <= o.hw + 1.4 && !over && !under) nearmiss(o, 'lado');
+      else if (inLane && over && p.y - o.y1 < .65 && o.y1 > .3) nearmiss(o, 'arriba');
+      // de lado: pasó rozando, o se quitó de ese carril en el último instante (antes casi nunca contaba: entre carriles hay 3 m y las piezas miden 2,6)
+      else if (!inLane && !o.move && !o.ghost && !over && !under && (dx <= o.hw + 1.4 || (S.time - p.laneAt < .32 && Math.abs(o.x - p.prevLane * LANE) <= o.hw + .4))) nearmiss(o, 'lado');
       if (!o.passed) o.passed = true;
     }
     if (!inLane || over || under) continue;
@@ -1641,7 +1646,7 @@ const ROWS = []; // ya no se usa: las filas las arma el generador a partir de la
 export const game = {
   THREE, scene, camera, renderer, sun, hemi, view, geo, LANE, HALF, DEPTH,
   part, bake, mat, canvasTex, stripes, leg, makeCat, makeDog, runCycle, rand, pick, clamp,
-  BUILD, SPEC, VARIANTS, ROWS, PIECES, piece, protos, vcMat, spawn, addObstacle, block, defaultSide, defaultFacade, defaultRoad, fill: defaultFill, gen, balconyAt,
+  BUILD, SPEC, VARIANTS, ROWS, PIECES, KIND_ODDS, piece, protos, vcMat, spawn, addObstacle, block, defaultSide, defaultFacade, defaultRoad, fill: defaultFill, gen, balconyAt,
   worlds, WORLD_DEFAULTS, setWorld, cats, setCat, refreshMenu, validateWorlds,
   rules, cfg, S, p, hooks, flags, store, on, emit, sfx, bark,
   start, reset, end, showMenu, enterSub, exitSub, applyWorld, damage, collect, coins, racha, invuln, calm, capture, rescue, canRescue, hud, setPaused, step: frame, sim,
