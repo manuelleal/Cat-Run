@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- Visor de control: muestra un .glb con la MISMA luz y tono del juego (js/core.js) para ver cómo queda en Three.js.
+     Servir la carpeta del proyecto (python -m http.server 8765) y abrir
+     http://localhost:8765/modelos/visor.html?m=tinto_v4.glb&v=atras   (v = frente | atras | lado | juego | cara; g = grados extra) -->
+<html lang="es"><meta charset="utf-8"><title>Visor de modelos</title>
+<style>html,body{margin:0;height:100%;background:#9cc4e8;overflow:hidden}#i{position:fixed;left:8px;top:8px;font:13px monospace;color:#012;background:#fffc;padding:4px 6px;white-space:pre}</style>
+<div id="i">cargando…</div>
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search), files = (q.get('m') || 'tinto_v4.glb').split(','), view = q.get('v') || 'frente';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+renderer.setSize(innerWidth, innerHeight);
+const W = +q.get('w') || 0, H = +q.get('h') || 0;   // tamaño fijo opcional para capturas comparables
+renderer.toneMapping = THREE.ACESFilmicToneMapping;      // igual que js/core.js
+renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9cc4e8);
+scene.add(new THREE.HemisphereLight(0xcfe6ff, 0x8a6f5a, 2.1));
+const sun = new THREE.DirectionalLight(0xffe2b0, 2.4);
+sun.position.set(6, 12, 4); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6 });
+scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x9a9a92, roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const camera = new THREE.PerspectiveCamera(view === 'juego' ? 60 : 30, innerWidth / innerHeight, .1, 100);
+const CONTRACT = ['body', 'torso', 'head', 'ear_L', 'ear_R', 'panuelo', 'knot', 'tail', 'tail_tip', 'leg_FL', 'leg_FR', 'leg_BR', 'leg_BL'];
+const info = [], loader = new GLTFLoader();
+let pending = files.length;
+files.forEach((f, k) => loader.load(f, g => {
+  const root = new THREE.Group(); root.add(g.scene); root.scale.setScalar(1.25);   // misma escala que js/models.js
+  root.position.x = (k - (files.length - 1) / 2) * 2.6;
+  root.rotation.y = THREE.MathUtils.degToRad(+q.get('g') || 0);
+  let tris = 0, meshes = 0; const mats = new Set(), tex = new Set();
+  g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; meshes++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    mats.add(o.material.type + ':' + o.material.name); for (const t of ['map', 'normalMap', 'roughnessMap']) if (o.material[t]) tex.add(t + ' ' + o.material[t].image.width); } });
+  const missing = CONTRACT.filter(n => !g.scene.getObjectByName(n));
+  info.push(`${f}: ${meshes} mallas, ${tris} tri, faltan [${missing}]\n  ${[...mats].join(', ')}\n  ${[...tex].join(', ')}`);
+  scene.add(root); if (!--pending) done();
+}, undefined, e => { info.push(f + ' ERROR ' + e); if (!--pending) done(); }));
+function done() {
+  const D = files.length > 1 ? 1.6 : 1, P = { frente: [2.4 * D, 1.9, -4.6 * D], atras: [-1.6 * D, 2.6, 5.0 * D], lado: [5.6 * D, 1.3, -.2], cara: [.8, 1.6, -3.0], juego: [0, 3.3, 5.4] }[view];
+  camera.position.set(...P); camera.lookAt(0, view === 'cara' ? 1.35 : view === 'juego' ? 1.2 : 1.0, view === 'cara' ? -1 : 0);
+  if (view === 'cara') camera.fov = 20, camera.updateProjectionMatrix();
+  const draw = () => { const w = W || innerWidth, h = H || innerHeight; renderer.setPixelRatio(W ? 1 : Math.min(2, devicePixelRatio || 1)); renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.render(scene, camera); };
+  addEventListener('resize', draw); draw();
+  const r = renderer.info.render;
+  document.getElementById('i').textContent = info.join('\n') + `\nllamadas de dibujo ${r.calls}, triángulos ${r.triangles}`;
+  // ?guardar=nombre -> manda la imagen al servidor de pruebas (POST /guardar/nombre.png); sirve cuando la captura de pantalla falla
+  if (q.get('guardar')) renderer.domElement.toBlob(b => fetch('/guardar/' + q.get('guardar') + '.png', { method: 'POST', body: b }).then(() => { window.guardado = true; }));
+  window.listo = true;
+}
+</script></html>

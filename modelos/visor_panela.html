@@ -1,0 +1,124 @@
+<!doctype html>
+<!-- Visor de Panela: muestra modelos/panela.glb con la MISMA luz y tono del juego (js/core.js), opcionalmente junto al
+     perro actual hecho por código (copia de makeDog() + el aparejo que le añade js/fx.js), y le aplica la pose de carrera
+     de fx.js para comprobar pivotes. Es una copia adaptada de visor.html (que solo conoce al gato: escala 1,25 y su contrato).
+     Servir con: python modelos/servidor_visor.py   y abrir
+     http://localhost:8766/modelos/visor_panela.html?v=juego&actual=1&pose=1&g=1.2&guardar=nombre
+       v = frente | atras | lado | cara | juego | arriba     actual=1 -> añade el perro actual a la izquierda
+       pose=1 -> pose de carrera de fx.js en la fase g (radianes)   extremo=1|-1 -> topes de fx.js   anim=1 -> lo deja corriendo en vivo
+       w,h -> tamaño fijo   guardar=nombre -> manda la imagen a modelos/intentos/nombre.png -->
+<html lang="es"><meta charset="utf-8"><title>Visor de Panela</title>
+<style>html,body{margin:0;height:100%;background:#9cc4e8;overflow:hidden}#i{position:fixed;left:8px;top:8px;font:13px monospace;color:#012;background:#fffc;padding:4px 6px;white-space:pre}</style>
+<div id="i">cargando…</div>
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search), view = q.get('v') || 'frente', file = q.get('m') || 'panela.glb';
+const W = +q.get('w') || 0, H = +q.get('h') || 0, ESCALA = 1.2;   // la misma escala de raíz de makeDog()
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;   // igual que js/core.js
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9cc4e8);
+scene.add(new THREE.HemisphereLight(0xcfe6ff, 0x8a6f5a, 2.1));
+const sun = new THREE.DirectionalLight(0xffe2b0, 2.4);
+sun.position.set(6, 12, 4); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 });
+scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x9a9a92, roughness: .95 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const camera = new THREE.PerspectiveCamera(view === 'juego' ? 62 : 30, 1, .1, 200);
+
+/* ---- copia de makeDog() de js/core.js y del aparejo de js/fx.js (solo para comparar; no se importa el juego) ---- */
+const BOX = new THREE.BoxGeometry(1, 1, 1), BALL = new THREE.SphereGeometry(.5, 24, 18), CAP = new THREE.CapsuleGeometry(.5, 1, 6, 14), CYL = new THREE.CylinderGeometry(.5, .5, 1, 14);
+function part(g, m, sx, sy, sz, x, y, z, parent) { const o = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: m })); o.scale.set(sx, sy, sz); o.position.set(x, y, z); parent.add(o); return o; }
+function leg(parent, color, paw, w, len, x, y, z) { const g = new THREE.Group(); g.position.set(x, y, z); part(CAP, color, w, len / 2, w, 0, -len / 2, 0, g); part(BALL, paw, w * 1.3, w * .8, w * 1.6, 0, -len + w * .3, -w * .25, g); parent.add(g); return g; }
+function perroActual() {
+  const g = new THREE.Group(), b = new THREE.Group(), B = 0xb86a2c, D = 0x7a4218, Wh = 0xffffff;
+  g.add(b);
+  part(BALL, B, 1.1, 1, 1.95, 0, 1.08, 0, b); part(BALL, Wh, .85, .75, .8, 0, .95, -.62, b); part(BALL, Wh, .55, .4, 1, 0, 1.4, -.15, b);
+  part(BALL, B, 1, .9, .9, 0, 1.68, -1.1, b); part(BALL, Wh, .3, .93, .93, 0, 1.68, -1.1, b); part(BALL, Wh, .66, .46, .55, 0, 1.5, -1.5, b);
+  part(BALL, 0x111111, .22, .16, .16, 0, 1.6, -1.77, b); part(BOX, Wh, .36, .09, .1, 0, 1.33, -1.7, b);
+  for (const x of [-1, 1]) {
+    part(BALL, D, .22, .55, .42, x * .5, 1.62, -1.02, b).rotation.z = x * .35;
+    part(BALL, Wh, .2, .2, .12, x * .22, 1.84, -1.48, b); part(BALL, 0x111111, .1, .1, .08, x * .22, 1.83, -1.53, b);
+    part(BOX, D, .26, .07, .08, x * .22, 1.96, -1.5, b).rotation.z = x * .45;
+  }
+  part(CYL, 0xd01828, 1, .2, .92, 0, 1.33, -.76, b).rotation.x = Math.PI / 2; part(BALL, 0xffc21a, .16, .16, .16, 0, .93, -.9, b);
+  const tail = new THREE.Group(); tail.position.set(0, 1.4, .9); tail.rotation.x = .9; part(CAP, B, .18, .22, .18, 0, .22, 0, tail); b.add(tail);
+  const legs = [[-.3, -.6], [.3, -.6], [.3, .6], [-.3, .6]].map(([x, z]) => leg(b, B, Wh, .3, .72, x, .72, z));
+  // aparejo de fx.js
+  const head = new THREE.Group(), jaw = new THREE.Group(), tongue = new THREE.Group(), tailTip = new THREE.Group(), ears = [];
+  head.position.set(0, 1.45, -.85);
+  for (const m of b.children.slice()) {
+    if (!m.isMesh || m.position.z > -1 || m.position.y < 1.3) continue;
+    const ear = Math.abs(Math.abs(m.position.x) - .5) < .01;
+    m.position.sub(head.position);
+    if (ear) { const piv = new THREE.Group(); piv.position.set(m.position.x, m.position.y + .24, m.position.z); piv.userData.side = Math.sign(m.position.x); m.position.set(0, -.24, 0); piv.add(m); head.add(piv); ears.push(piv); } else head.add(m);
+  }
+  b.add(head);
+  jaw.position.set(0, -.07, -.42); part(BALL, 0xffffff, .56, .2, .52, 0, -.03, -.22, jaw); part(BALL, 0x8c1f2f, .42, .1, .4, 0, .05, -.2, jaw); head.add(jaw);
+  tongue.position.set(.2, .03, -.3); part(BALL, 0xff6f91, .52, .06, .2, .26, 0, 0, tongue); jaw.add(tongue);
+  tailTip.position.set(0, .42, 0); part(CAP, 0xb86a2c, .15, .15, .15, 0, .15, 0, tailTip); part(BALL, 0xffffff, .21, .21, .21, 0, .36, 0, tailTip); tail.add(tailTip);
+  g.scale.setScalar(ESCALA);
+  g.userData = { legs, tail, tailTip, head, jaw, tongue, ears };
+  return g;
+}
+/* ---- así envolvería el integrador a panela.glb (ver equipo/panela.md) ---- */
+function envolver(sceneGlb) {
+  const root = new THREE.Group(), n = k => sceneGlb.getObjectByName(k);
+  root.add(sceneGlb); root.scale.setScalar(ESCALA);
+  const ears = [n('ear_L'), n('ear_R')]; ears[0].userData.side = -1; ears[1].userData.side = 1;
+  root.userData = { legs: ['FL', 'FR', 'BR', 'BL'].map(k => n('leg_' + k)), tail: n('tail'), tailTip: n('tail_tip'), head: n('head'), jaw: n('jaw'), tongue: n('tongue'), ears, tag: n('tag') };
+  return root;
+}
+/* ---- pose de carrera: las mismas fórmulas de dogPose() en js/fx.js (modo 'play', m = 1), en la fase g ---- */
+function pose(d, g, t) {
+  const u = d.userData, m = 1, pitch = Math.cos(g - 1) * .1, sn = Math.sin(g - 1), up = .5 + .5 * sn;
+  [Math.sin(g) * 1.05, Math.sin(g + .55) * 1.05, Math.sin(g + 2.6) * 1.1, Math.sin(g + 3.15) * 1.1].forEach((a, i) => u.legs[i].rotation.x = a);
+  d.position.y = Math.pow(up, 1.4) * .32; d.rotation.x = pitch; d.scale.set(ESCALA, ESCALA, ESCALA * (1 + .07 * sn));
+  u.head.rotation.set(-pitch * .85 + Math.sin(g - 1.9) * .05, 0, 0);
+  const jawOpen = .14 + .05 * Math.sin(t * 15);
+  u.jaw.rotation.x = -jawOpen * .75;
+  u.tongue.rotation.set(0, -.55 * m + Math.sin(t * 17) * .22 * (m + .3), -.3 + Math.sin(t * 11) * .12 - jawOpen * .3);
+  for (const e of u.ears) e.rotation.set(-.3 * m, 0, e.userData.side * .12 * m);
+  const wag = t * 13;
+  u.tail.rotation.set(.9, 0, Math.sin(wag) * .45); u.tailTip.rotation.set(0, 0, Math.sin(wag - 1) * .45 * 1.3);
+  if (u.tag) u.tag.rotation.x = Math.sin(t * 9) * .5;
+  if (q.get('extremo')) { // los topes que fx.js llega a pedir: mandíbula .8, orejas 1.25, cola caída 2.1, cabeza -.4 / ladrido
+    u.jaw.rotation.x = -.8 * .75; for (const e of u.ears) e.rotation.set(-.3 - .3, 0, e.userData.side * 1.25);
+    u.tail.rotation.set(2.1, 0, .08); u.head.rotation.set(+q.get('extremo') < 0 ? -.4 : .3, 0, .1);
+  }
+}
+const dogs = [];
+if (q.get('actual')) { const a = perroActual(); a.position.x = -1.7; dogs.push(a); scene.add(a); }
+new GLTFLoader().load(file, g => {
+  let tris = 0, meshes = 0; const mats = new Set(), tex = new Set();
+  g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; meshes++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    mats.add(o.material.type + ':' + o.material.name); for (const t of ['map', 'normalMap', 'roughnessMap']) if (o.material[t]) tex.add(t + ' ' + o.material[t].image.width); } });
+  const d = envolver(g.scene); d.position.x = q.get('actual') ? 1.7 : 0; dogs.push(d); scene.add(d);
+  dogs.forEach(o => o.traverse(c => { if (c.isMesh) c.castShadow = true; }));
+  const cx = 0, D = q.get('actual') ? 1.5 : 1;
+  const P = { frente: [3.6 * D, 2.6, -7.2 * D], atras: [-2.4 * D, 3.9, 7.6 * D], lado: [9 * D, 1.9, -.3], cara: [1.3, 2.3, -6.2], juego: [0, 4.6, 3.6], arriba: [0, 9 * D, 2.5] }[view];
+  camera.position.set(...P);
+  if (view === 'juego') camera.lookAt(0, 1, -10); else camera.lookAt(cx, view === 'cara' ? 2.0 : 1.3, view === 'cara' ? -1.5 : 0);
+  if (view === 'cara') camera.fov = 22;
+  const info = `${file}: ${meshes} mallas, ${tris} tri\n  ${[...mats].join(', ')}\n  ${[...tex].join(', ')}`;
+  let t = +q.get('t') || 0, g0 = +q.get('g') || 0;
+  const draw = () => {
+    const w = W || innerWidth, h = H || innerHeight; renderer.setPixelRatio(W ? 1 : Math.min(2, devicePixelRatio || 1)); renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (q.get('pose') || q.get('anim')) dogs.forEach(o => pose(o, g0, t));
+    renderer.render(scene, camera);
+  };
+  addEventListener('resize', draw); draw();
+  document.getElementById('i').textContent = info + `\nllamadas de dibujo ${renderer.info.render.calls}, triángulos ${renderer.info.render.triangles}`;
+  if (q.get('anim')) { let last = performance.now(); (function loop(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt; g0 += dt * 16; draw(); requestAnimationFrame(loop); })(last); }
+  if (q.get('guardar')) renderer.domElement.toBlob(b => fetch('/guardar/' + q.get('guardar') + '.png', { method: 'POST', body: b }).then(() => { window.guardado = true; }));
+  window.listo = true;
+}, undefined, e => { document.getElementById('i').textContent = file + ' ERROR ' + e; });
+</script></html>
