@@ -634,7 +634,7 @@ function candidates(cell, tier, opts = {}) {
     else if (cell === 'A' && opts.full && !pc.full) continue;
     if (cell === 'S' && pc.lanes === 2 && !opts.wide) continue;
     if (cell === 'S' && opts.wide && pc.lanes !== 2) continue;
-    if (pc.hard && tier < 1) continue;
+    if (pc.hard && (tier < 1 || gen.noHard)) continue;
     if (opts.center && pc.outer) continue; // piezas que viven en el andén: solo carriles de afuera
     if ((SPEC[k]?.minTier || 0) > tier) continue; // piezas que se acercan de frente: solo desde cierto escalón
     if (opts.seenOnly && !gen.seen.has(k)) continue;
@@ -778,7 +778,8 @@ function specials(seg, s0, s1, exits, dist, heat) {
 }
 function populate(seg, first) {
   const base = seg.base, run = !sub && first; // tramo inicial de la carrera: arranque guionado
-  let s = run ? 60 : 20;
+  // en una calle lateral la primera fila queda más lejos (0,4 s más de calle a la velocidad actual): al girar no se veía venir
+  let s = run ? 60 : seg.turned ? 20 + .4 * Math.max(S.speed, cfg.baseSpeed) : 20;
   const end = seg.L - 20, arrival = at => S.heat + Math.max(0, base + at - S.dist) / Math.max(8, S.speed);
   let prev = null; // { s: fin de la fila anterior, exits }
   if (run) { genReset(); gen.scripted = SCRIPTED.length; gen.base = 0; }
@@ -787,7 +788,10 @@ function populate(seg, first) {
   for (let k = head0; k < s - 4; k += 2.4) addObstacle(seg, 'moneda', k, headLane);
   let rowsInSeg = 0;
   while (s < end) {
-    const heat = arrival(s), tier = gen.scripted > 0 ? 0 : Math.max(0, tierOf(heat) + W('tierShift')), v = speedAt(heat); // el arranque guionado enseña con piezas blandas
+    const heat = arrival(s), v = speedAt(heat);
+    const tier = gen.scripted > 0 ? 0 : Math.max(0, tierOf(heat) + W('tierShift'));
+    gen.noHard = seg.turned && rowsInSeg === 0; // la primera fila después de girar no trae piezas duras: nunca una captura a ciegas
+    // (probado y descartado: bajar esa fila al escalón 0 convertía el giro en atajo; el que gira duraba 59 s contra 45 s en Neón) // el arranque guionado enseña con piezas blandas
     const [t0, t1] = cfg.tierRowTime[Math.min(tier, 4)];
     const tRow = rand(t0, t1) * (seg.bonus ? .9 : 1); // calle con premio: las filas vienen un 10 % más seguidas (medido: subir un escalón entero costaba 12 s de vida en Neón)
     const nearEnd = s + v * t1 * 1.5 + 14 > end; // cerca del cruce no caben combos
@@ -821,6 +825,7 @@ function populate(seg, first) {
     gen.afterRespiro = false;
     const after = tRow * (plan.shapes.length === 3 ? 1.5 : plan.shapes.length === 2 ? 1.25 : 1);
     s = prev.s + v * after;
+    gen.noHard = false;
     if (lastRow) break;
     if (row.complete && gen.wave >= gen.waveN && !gen.scripted) { // oleada cumplida y fila completa: toca respiro
       gen.respiro = 2; gen.waveN = Math.round(rand(...cfg.tierWave[Math.min(tier, 4)]));
@@ -894,11 +899,12 @@ function sowBalconies(seg) {
     if (food) food.make(seg, b.s0 + 5 + b.L - 3, lane, 2.2); else addObstacle(seg, 'pescado', b.s0 + 5 + b.L - 3, lane, 2.2);
   }
 }
-function buildSegment(origin, yaw, first, base = 0, bonus = false) {
+function buildSegment(origin, yaw, first, base = 0, bonus = false, turned = false) {
   const L = first ? 180 : rand(165, 230), r = Math.random();
   const seg = {
     origin, yaw, L, first: !!first, obs: [], exits: {}, g: new THREE.Group(), world, base,
     sides: world.tunnel ? [] : r < .35 ? [-1] : r < .7 ? [1] : [-1, 1],
+    turned, // calle lateral: solo se entra girando, y no se ve antes de girar
     bonus, // calle con premio: solo calles laterales; la flecha de GIRAR lo anuncia y populate() la llena de ratones a cambio de filas más seguidas
     dir: new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)),
     right: new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw))
@@ -944,7 +950,7 @@ function buildSegment(origin, yaw, first, base = 0, bonus = false) {
 }
 const endOf = seg => seg.origin.clone().addScaledVector(seg.dir, seg.L);
 function openExits(seg) {
-  for (const d of [0, ...seg.sides]) seg.exits[d] = buildSegment(endOf(seg), seg.yaw - d * Math.PI / 2, false, seg.base + seg.L, d !== 0 && !sub && Math.random() < .5);
+  for (const d of [0, ...seg.sides]) seg.exits[d] = buildSegment(endOf(seg), seg.yaw - d * Math.PI / 2, false, seg.base + seg.L, d !== 0 && !sub && Math.random() < .5, d !== 0);
 }
 function removeSegment(seg) {
   emit('segmentRemoved', seg);

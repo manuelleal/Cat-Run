@@ -567,6 +567,12 @@ Con el lote completo (20 partidas) se vio que girar costaba vida: en Neón el qu
 
 Bots, 30 partidas, mediana (cuartil bajo entre paréntesis): Costa humano 53 s (35), girador 53 s; Neón humano 53 s (32), girador 42 s; Pueblo humano 44 s (30), girador 47 s; quieto 6 s en los tres. El Pueblo ha dado entre 44 y 59 s en cuatro mediciones de hoy: con 20–30 partidas el margen es de unos ocho segundos, así que diferencias menores que eso no dicen nada.
 
+### Coordinador — que girar no cueste en Neón
+
+La calle lateral no se ve antes de girar y su primera fila quedaba a menos de un segundo. Primer intento: esa fila más lejos y de escalón 0. Se pasó: el que gira duraba 59 s contra 45 s en Neón (y 71 contra 56 en la Costa): girar era un atajo. Segundo intento, el que quedó: la primera fila tras girar va 0,4 s más lejos y sin piezas duras, nada más.
+
+Bots, 30 partidas, mediana, girador / humano: Neón 51 / 43 s, Costa 65 / 59 s, Pueblo 53 / 47 s. Girar ya no cuesta; sale unos seis segundos mejor en los tres mundos, dentro del margen de la medición.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.
@@ -614,6 +620,7 @@ El propósito del ejercicio es mostrar cómo trabajan los agentes con herramient
 | Lógica (heredado) | El generador solo dejaba entrar un tipo de muro por partida: una condición de "primer encuentro limpio" que ninguna fila de muros podía cumplir | El coordinador contó hidrantes: 22 en una partida y 0 en las tres siguientes | Una fila de un solo tipo de pieza ya cuenta como primer encuentro, tenga huecos o no |
 | Coordinador | Su primera captura de prueba salió tapada por la pantalla de pausa: pausó el juego para congelar la imagen y la pausa abre un panel | Al mirar la captura | Congela el estado sin emitir el evento de pausa |
 | Coordinador | Al subir la aceleración puso un comentario en mitad de una línea de la tabla de reglas y borró sin querer la gravedad, el salto y otros cuatro valores: el gato quedaba flotando y nada lo chocaba. Iba a publicarse | El bot "humano" duró 300 s sin un solo choque | Movió el comentario; el bot quieto volvió a caer a los 6 s |
+| Coordinador | Lanzó dos lotes de bots a la vez en la misma pestaña: las partidas se pisaron y los números no servían (el bot humano de Neón bajó de 53 a 36 s sin motivo) | La cifra no cuadraba con la medición anterior | Repitió con un solo lote |
 
 ## Si este juego fuera a dar mucha plata
 
