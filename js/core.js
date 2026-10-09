@@ -315,9 +315,17 @@ const BUILD = {
     part(BOX, hazardMat, 2.2, .35, .06, 0, .55, -1.72, g);
     part(BOX, 0x6a4a3a, 1.8, .2, 2.6, 0, .1, 0, g);
   },
-  bolsas(g) { // pila de bolsas de basura: muro blando
-    for (const [x, y, z, r] of [[-.5, .5, .1, 1.1], [.55, .5, -.1, 1], [0, 1.3, 0, 1], [.1, .55, .7, .9], [-.3, 1.4, -.6, .8]]) part(SPH, [0x1a1a1f, 0x26262d, 0x2b2b33][Math.floor(r * 3) % 3], r, r * .85, r, x, y, z, g);
-    part(SPH, 0xf2c230, .3, .3, .3, .6, 1.05, .5, g);
+  bolsas(g) { // muro blando: ni se salta ni se pasa por debajo, hay que cambiar de carril.
+    // Antes era un montón bajo de bolsas negras que parecía saltable; ahora es una pila alta de cajas con un aviso de cierre.
+    for (const [x, y, z, r] of [[-.08, .45, 0, .04], [.1, 1.35, .05, -.07], [-.05, 2.25, -.03, .05]]) {
+      const c = part(BOX, 0xb9833f, 2, .88, 1.5, x, y, z, g);
+      c.rotation.y = r;
+      part(BOX, 0x7a4f22, 2.06, .1, 1.56, x, y + .4, z, g).rotation.y = r;
+      part(BOX, 0x7a4f22, 2.06, .1, 1.56, x, y - .4, z, g).rotation.y = r;
+    }
+    part(BOX, 0xd8232f, 1.7, 1.7, .08, 0, 1.45, .84, g); // tablero rojo de frente al jugador
+    part(BOX, 0xffffff, 1.9, .26, .1, 0, 1.45, .88, g).rotation.z = Math.PI / 4; // equis blanca: por aquí no
+    part(BOX, 0xffffff, 1.9, .26, .1, 0, 1.45, .88, g).rotation.z = -Math.PI / 4;
   },
   poste(g, v) { // poste caído en diagonal: bajo en un lado, alto en el otro
     const dir = v % 2 ? 1 : -1, L = 9.6, h0 = .35, h1 = 2.5;
@@ -388,7 +396,7 @@ const SPEC = {
   carreta: { hw: 1.1, hl: 1.4, y0: 0, y1: 3, cell: 'X', hard: true },
   cinta: { hw: 5, hl: .2, y0: 1.15, y1: 3, cell: 'A', full: true, fly: true },
   contenedor: { hw: 1.25, hl: 1.8, y0: 0, y1: 2.6, cell: 'X', hard: true },
-  bolsas: { hw: 1.1, hl: 1, y0: 0, y1: 1.9, cell: 'X', fly: true },
+  bolsas: { hw: 1.1, hl: .85, y0: 0, y1: 2.7, cell: 'X', fly: true },
   poste: { hw: 0, hl: .4, y0: 0, y1: 0, cell: 'W6', full: true, cells: 'SXA', shadow: true },
   nada: { hw: 1.3, hl: .4, y0: 0, y1: .9, cell: 'S', fly: false, shadow: false, ghost: true },
   zanja: { hw: 2.9, hl: 1.5, y0: -1, y1: .05, cell: 'S', hole: true, lanes: 2, shadow: false },
