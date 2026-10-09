@@ -34,6 +34,24 @@ Cada módulo exporta `export function install(game) { ... }`. El núcleo los car
 - **Racha y multiplicador:** `S.racha` sube con acciones (moneda +1, ratón/comida +2, "por un pelo" +5, pasar por debajo +5, giro +10, escalera +10); `S.mult` x1…x5 por `multSteps`; al tropezar baja `multDrop` escalones. `S.bonus` acumula `puntos × (mult − 1)` y metros × (mult − 1); `end()` lo suma al puntaje. Las monedas de la billetera no se multiplican.
 - **Fin de partida:** solo el núcleo captura (`capture(cause, hard)` → `dying` → 1,3 s → `end()`). Los niveles piden `game.end({ won, reason })` por objetivo, tiempo o tropiezos.
 
+## Tipos de calle, topes y retos (añadido el 8 de octubre)
+
+- **Tipos de calle** (`seg.kind`): `''` normal, `callejon`, `mercado`, `plaza`, `tejado`. Los decide `kindFor(d)` con las probabilidades de `KIND_ODDS` (`game.KIND_ODDS`, se puede tocar en caliente para experimentar): `side` para calles laterales y `ahead` para la de frente. La flecha de GIRAR anuncia el tipo de la lateral. Son inventados: no copian ningún lugar real.
+  - `callejon`: dos carriles. `seg.closed` (±1) es el carril que tapa el muro; `gen.closed` es su índice mientras se puebla. El generador no pone piezas ni salidas ahí, no admite piezas móviles ni el poste, y cada fila lleva una caja invisible (`nada`) en ese carril para quien lea filas. `move()` no deja entrar. Trae ratones en cada hueco y filas un 10 % más seguidas (`seg.bonus`). No usa `world.side`: lo arma `alleySide`.
+  - `mercado`: decorado normal del mundo más `marketSide`; pesa más las celdas S y A y menos las X.
+  - `plaza`: `plazaSide` en vez de `world.side`; máximo 4 filas.
+  - `tejado`: un balcón de 50–80 m (`planBalconies`).
+  - `world.ambiente` no corre en `callejon` ni `plaza`.
+- **Calle lateral** (`seg.turned`): la primera fila va 0,4 s más lejos y sin piezas duras (`gen.noHard`).
+- **Topes** (`rules.js`): `rowMaxObs`, `streetMaxRows`, `streetMaxObs`, `streetMaxPickups`.
+- **Piezas de andén** (`SPEC.outer`, hoy el hidrante): solo carriles de afuera.
+- **Primer encuentro:** una pieza nueva solo entra en una fila de un solo tipo de pieza (con o sin huecos).
+- **"Por un pelo" de lado:** cuenta quitarse del carril del obstáculo en los últimos 0,32 s (`p.laneAt`).
+- **Retos por partida** (`RETOS` en `levels.js`): tres seguidos en modo infinito, ficha `#lvReto`, pagan con `game.coins`.
+- **Marcador:** un renglón. `#micePill`, `#bocadoPill` y `#lvSard` existen pero no se muestran; `#canecaPill` solo con carga.
+- **Cámara:** `gapMax` 6,5 y `dangerGap` 3,6; la altura sube 1 m por cada metro que Panela se acerca.
+- **Bots:** un solo `bots.batch` a la vez por pestaña (dos a la vez se pisan). **Nunca poner un comentario `//` en mitad de una línea de `BASE` en `rules.js`:** se come las claves que siguen.
+
 ## Coordenadas
 
 - Personajes y obstáculos miran hacia **-Z**. Dentro de un tramo: `x` = lateral (carriles en x = -3, 0, 3; balcones en x = ±6, `p.lane = ±2`), `z = -s` donde `s` es la distancia recorrida en el tramo, `y` = altura.
