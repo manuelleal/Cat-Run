@@ -344,7 +344,7 @@ export function install(game) {
   function setCombo(n) {
     if (n === comboShown) return;
     comboShown = n;
-    if (n >= 2) { comboNum.textContent = 'x' + n; comboEl.className = n >= 5 ? 'fire' : n >= 3 ? 'hot' : ''; }
+    if (n >= 1) { comboNum.textContent = 'x' + n; comboEl.className = n >= 5 ? 'fire' : n >= 3 ? 'hot' : ''; }
   }
   comboLbl.textContent = 'PUNTOS';
   // avance de la racha hacia el siguiente escalón del multiplicador
@@ -362,10 +362,10 @@ export function install(game) {
     const by = Math.round((1 - cin) * 101);
     sty(b1, 'transform', `translateY(${-by}%)`); sty(b2, 'transform', `translateY(${by}%)`);
     // racha
-    if (S.mult >= 2 && mode === 'play') {
-      const s = 1 + clamp(comboPunch.x, -.3, .9);
+    if (mode === 'play') { // visible desde x1 (más chico y tenue): el que empieza ve que la barra se llena con lo que hace
+      const s = (S.mult >= 2 ? 1 : .6) * (1 + clamp(comboPunch.x, -.3, .9));
       setCombo(S.mult);
-      sty(comboEl, 'opacity', '1');
+      sty(comboEl, 'opacity', S.mult >= 2 ? '1' : '.8');
       sty(comboEl, 'transform', `rotate(${(-7 + comboPunch.x * 14).toFixed(1)}deg) scale(${s.toFixed(3)})`);
       sty(comboBar, 'transform', `scaleX(${multProgress().toFixed(2)})`);
     } else sty(comboEl, 'opacity', '0');
@@ -444,6 +444,10 @@ export function install(game) {
       else if (p.slide <= 0) { addY = Math.abs(Math.sin(phase * 1.6)) * .06 * base.y; rx = -(.05 + speedK * .1); } // trote e inclinación con la velocidad
       step(lean, -clamp(dx * .12, -.42, .42), 170, 12, dt); // se inclina hacia el carril al que va (con rebote)
       ry -= clamp(dx * .08, -.3, .3);
+      if (S.danger > 0 && p.y <= 0 && flip.t < 0) { // Panela encima: Tinto corre encogido y temblando, y cada tanto mira atrás de reojo
+        const k = sat(S.danger / 2);
+        ry += (Math.sin(fxT * 41) * .05 + Math.max(0, Math.sin(fxT * 2.6)) ** 6 * .55) * k; tgt -= .07 * k; rx -= .06 * k;
+      }
     } else step(lean, 0, 120, 14, dt);
 
     if (flip.t >= 0) { // voltereta: hacia atrás al chocar, hacia adelante en el salto doble
@@ -500,7 +504,7 @@ export function install(game) {
       jawOpen = .14 + .05 * Math.sin(fxT * 15);
       const near = sat((4 - S.dogGap) / 2); // cuanto más cerca del gato, más excitado
       wagAmp = .45 + near * .4; wagRate = 13 + near * 9;
-      if (near > .3) { snapT -= dt; if (snapT <= 0) { snapT = rnd(.7, 1.5); barkT = .16; } } // tarascadas al aire
+      if (near > .3) { snapT -= dt; if (snapT <= 0) { snapT = rnd(.7, 1.5); barkT = .16; if (!game.sub && dt > 0) game.bark(); } } // tarascadas al aire, ahora con ladrido: el peligro también se oye
     } else if (mode === 'dying') {
       const u = sat(T / .6);
       if (T < .12) sqT = .74; // anticipación: se agacha antes del salto
@@ -712,7 +716,12 @@ export function install(game) {
     if (e.up) { comboPunch.v += 9; if (MILES[e.mult] && !milesShown.has(e.mult)) { milesShown.add(e.mult); showBanner(MILES[e.mult]); fovS.v += 14; sparkle(pos.x, p.y + 1.7, pos.z, 16, COL.gold, COL.white, 7, .9); } }
     else floatText('¡Racha perdida!', pos.x, 2.6, pos.z, '', .9, 50, .8);
   });
-  on('nearmiss', e => { const pos = game.pos; floatText(pick(['¡Por un pelo!', '¡Uy!', '¡Rozando!', '¡Ni lo tocó!']), pos.x, p.y + 2, pos.z, 'gold', .8, 60, .9); linesK = Math.max(linesK, .6); });
+  on('nearmiss', e => {
+    const pos = game.pos; floatText(pick(['¡Por un pelo!', '¡Uy!', '¡Rozando!', '¡Ni lo tocó!']), pos.x, p.y + 2, pos.z, 'gold', .8, 60, .9); linesK = Math.max(linesK, .6);
+    // gesto (solo se ve; no cambia cajas de choque ni controles): pirueta si pasó rozando por encima, respingo si fue de lado
+    if (e && e.how === 'arriba' && flip.t < 0) { flip.t = 0; flip.dur = .42; flip.dir = -1; flip.hop = .15; }
+    else { stretch.x = 1.28; stretch.v = -2; lean.v += (p.x >= (e?.o?.x ?? 0) ? -1 : 1) * 5; sparkle(pos.x, p.y + 1.5, pos.z, 5, COL.white, COL.white, 3, .7); }
+  });
   on('pass', o => { if (o.type !== 'caneca') { const pos = game.pos; floatText('¡Por debajo!', pos.x, 1.6, pos.z, 'gold', .7, 50, .8); } });
   on('bocado', () => showBanner('¡BOCADO LISTO!'));
   on('bocadoUsed', () => { showBanner('¡Se distrajo!'); const pos = game.pos; sparkle(pos.x, 1.2, pos.z, 12, COL.pink, COL.white, 5, .9); });
@@ -730,6 +739,10 @@ export function install(game) {
       ring(pos.x, y, pos.z, COL.pink, 3.2, .3, .85);
       floatText('+1 🐭', pos.x, y + .9, pos.z, 'pink', .8, 64, 1.1);
       stretch.v += 2.2;
+    } else if (o.food) { // comida: brinco de gusto con media vuelta
+      sparkle(pos.x, y, pos.z, 10, COL.gold, COL.pink, 5, .9);
+      floatText('¡Ñam! +5', pos.x, y + .9, pos.z, 'gold', .9, 64, 1.1);
+      if (flip.t < 0) { flip.t = 0; flip.dur = .5; flip.dir = -1; flip.hop = .55; }
     } else {
       sparkle(pos.x, y, pos.z, 6, COL.gold, COL.gold2, 4, .85);
       ring(pos.x, y, pos.z, COL.gold, 2.6, .26, .85);

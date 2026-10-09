@@ -7,7 +7,7 @@ export const BASE = {
   baseSpeed: 15, accel: .10, maxSpeed: 32, jumpV: 11.5, gravity: 34, airJumps: 0, slideTime: .85, laneSnap: 14, inputBuffer: .15,
   // modelo de fallo: un tropiezo abre una ventana de peligro; otro tropiezo dentro de ella es captura; choque duro de frente es captura
   // dangerTime 7 (el diseño decía 6): con filas de hasta 1,9 s, tres filas más el frenazo pueden pasar de 6 s y el quieto "espera a que pase"
-  invuln: 1.0, hitSlow: .45, dangerTime: 7, dangerGap: 2.8, dangerFade: 2.5, hardCrash: true, gapMax: 8.5,
+  invuln: 1.0, hitSlow: .45, dangerTime: 7, dangerGap: 3.6, dangerFade: 2.5, hardCrash: true, gapMax: 6.5, // Panela más cerca en calma (Tinto se veía muy chico al fondo) y no tan encima en peligro (lo tapaba)
   // Bocado: ratones y comida llenan una presa que salva de UNA captura por doble tropiezo
   bocadoMax: 20, bocadoMouse: 1, bocadoFood: 5,
   // dificultad: reloj propio (heat) y escalón tope

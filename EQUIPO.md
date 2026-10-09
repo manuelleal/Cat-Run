@@ -550,6 +550,17 @@ El dueño pegó un plan largo de ideas (personalidad de Tinto, calles con secret
 - El técnico encontró código muerto: las calles "bonus" se marcan al crearlas y nadie las usa. Activarlas es la forma barata de dar decisiones en los cruces.
 - Propuesta para un día: calles con premio anunciadas en la flecha, tres retos por partida, medidor de racha visible desde el inicio, ladrido y susto cuando Panela se acerca, gestos de Tinto.
 
+### Coordinador — el dueño decide sobre el plan y prueba desde el celular
+
+El dueño aceptó cuatro de las cinco propuestas (dejó fuera los retos por partida para no volver a llenar el marcador) y pidió no publicar sin probar. Desde el celular reportó además dos cosas: las flechas de GIRAR se veían muy grandes y Tinto muy pequeño al frente (y tapado por Panela cuando ella se acerca).
+
+- **Calles con premio:** la mitad de las calles laterales traen ratones en cada hueco a cambio de un escalón más de dificultad, y la flecha lo anuncia ("premio") antes de girar. Usa la marca `bonus`, que existía y nadie leía.
+- **Racha visible desde x1**, más chica y tenue hasta que sube.
+- **Panela cerca:** sus tarascadas ahora ladran; Tinto corre encogido, tiembla y mira atrás de reojo.
+- **Gestos de Tinto:** pirueta al pasar rozando por encima, respingo si roza de lado, brinco con media vuelta al comer. Solo se ven; no cambian choques ni controles.
+- **Cámara:** más cerca y Panela menos lejos en calma (6,5 m en vez de 8,5) y no tan encima en peligro (3,6 en vez de 2,8); la cámara sube más cuando ella se acerca. Flechas de GIRAR a poco más de la mitad del tamaño.
+- **Bots (20 semillas, mediana):** humano 52 / 43 / 51 s (Pueblo / Costa / Neón); el que gira en los cruces, 50 / 40 / 41 s; el quieto, 6 s. Girar no es una trampa mortal ni un atajo.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.

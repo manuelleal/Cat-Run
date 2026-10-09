@@ -44,9 +44,14 @@
   .hint.sel { opacity: 1; color: var(--good); animation: none; }
   #hl { left: 3%; } #hr { right: 3%; }
   /* las flechas de giro son botones: se tocan para meterse por la calle lateral */
-  button.hint { top: 42%; z-index: 6; padding: 12px 18px 10px; border-radius: 20px; border: 3px solid #ffe14f; background: #1c2740e0; pointer-events: none; cursor: pointer;
-    font-size: clamp(44px, 13vw, 68px); box-shadow: 0 5px 0 #000a, 0 0 22px #ffe14f; }
-  button.hint small { font-size: .34em; }
+  button.hint { top: 46%; z-index: 6; padding: 6px 10px 6px; border-radius: 14px; border: 2px solid #ffe14f; background: #1c2740d0; pointer-events: none; cursor: pointer;
+    font-size: clamp(26px, 7.5vw, 40px); box-shadow: 0 3px 0 #000a, 0 0 12px #ffe14f; }
+  button.hint small { font-size: .4em; text-shadow: 0 2px 0 #000; }
+  #lvMeta[hidden] { display: none !important; }
+  /* calle con premio: la flecha lo anuncia antes de girar */
+  button.hint em { display: none; font-style: normal; font-size: .36em; margin-top: 4px; padding: 2px 6px; border-radius: 8px; background: var(--good); color: #0e1120; text-shadow: none; white-space: nowrap; }
+  button.hint.bonus em { display: block; }
+  button.hint.bonus { border-color: var(--good); box-shadow: 0 3px 0 #000a, 0 0 16px var(--good); }
   button.hint.on, button.hint.sel { pointer-events: auto; opacity: 1; animation: none; }
   button.hint.sel { border-color: var(--good); background: #14402ae0; }
   @keyframes blink { 50% { opacity: .4; } }
@@ -112,8 +117,8 @@
     <span class="pill gold">🐾 <span id="coins">0</span></span>
   </div>
   <div id="pum"></div>
-  <button class="hint" id="hl" data-ui aria-label="Girar a la izquierda">⬅<small>GIRAR</small></button>
-  <button class="hint" id="hr" data-ui aria-label="Girar a la derecha">➡<small>GIRAR</small></button>
+  <button class="hint" id="hl" data-ui aria-label="Girar a la izquierda">⬅<small>GIRAR</small><em>🐭 premio</em></button>
+  <button class="hint" id="hr" data-ui aria-label="Girar a la derecha">➡<small>GIRAR</small><em>🐭 premio</em></button>
 
   <div class="overlay" id="menu">
     <div class="box">
