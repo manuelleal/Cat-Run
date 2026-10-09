@@ -22,6 +22,8 @@ Notas para retomar el trabajo en una sesión nueva. El historial completo del pr
 
 - Después: calles laterales con premio anunciadas en la flecha, racha visible desde x1, ladrido y susto con Panela cerca, gestos de Tinto, cámara más cerca y flechas de GIRAR más chicas. Además acelera más al avanzar (`accel` .13, tope 34) y anuncia cada escalón con "¡MÁS RÁPIDO!". Publicado a pedido del dueño.
 
+- Tipos de calle (`kindFor`, `alleySide`, `plazaSide`, `marketSide` en `js/core.js`): callejón, mercado, plaza y tejados; la flecha de GIRAR los anuncia. Retos por partida en `js/levels.js`. Pendiente de esto: callejón de dos carriles, y vigilar que girar no rinda demasiado (hoy ~13 s más en Neón y la Costa).
+
 ## Pendiente, en orden
 
 1. Modelar en Blender los obstáculos que siguen hechos por código (contenedor, poste, zanja, tubo, hidrante, andamio, pila de cajas).

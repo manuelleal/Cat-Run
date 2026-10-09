@@ -239,7 +239,7 @@ export function install(game) {
     return obj;
   }
   game.on('segmentRemoved', seg => vivos.delete(seg));
-  game.on('segment', seg => { try { seg.world.ambiente?.(seg); } catch (e) { console.error('[mundos] ambiente', e); } });
+  game.on('segment', seg => { if (seg.kind === 'plaza' || seg.kind === 'callejon') return; try { seg.world.ambiente?.(seg); } catch (e) { console.error('[mundos] ambiente', e); } });
 
   /* ================= Obstáculos ================= */
   const pon = (seg, type, s, lane) => { const o = addObstacle(seg, type, s, lane); o.seg = seg; o.ph = rand(0, TAU); o.x0 = o.x; return o; };

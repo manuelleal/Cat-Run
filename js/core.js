@@ -573,7 +573,7 @@ piece('poste', { make(seg, s, lane) { // una sola viga, tres celdas: S en un lad
 // Ciclo en las reglas: hydrantOn abierto, hydrantOff cerrado, y un goteo de aviso hydrantWarn antes de abrir.
 piece('hidrante', { make(seg, s, lane) {
   const side = Math.sign(lane) || pick([-1, 1]);
-  if (balconyAt(seg, side, s)) return PIECES.bolsas.make(seg, s, lane); // ahí van los escalones del balcón: el hidrante no cabe
+  if (balconyAt(seg, side, s) || seg.kind === 'callejon') return PIECES.bolsas.make(seg, s, lane); // ahí van los escalones del balcón, o no hay andén: el hidrante no cabe
   const o = addObstacle(seg, 'hidrante', s, side), jet = spawn('chorro'), turn = side > 0 ? 0 : Math.PI;
   for (const m of o.mesh.children) { m.position.x = side * 1.95; m.rotation.y = turn; }
   jet.position.set(side * 1.6, 1.05, 0); jet.rotation.y = turn;
@@ -638,7 +638,8 @@ function candidates(cell, tier, opts = {}) {
     if (opts.center && pc.outer) continue; // piezas que viven en el andén: solo carriles de afuera
     if ((SPEC[k]?.minTier || 0) > tier) continue; // piezas que se acercan de frente: solo desde cierto escalón
     if (opts.seenOnly && !gen.seen.has(k)) continue;
-    out.push([k, w]);
+    // mercado: muchos toldos bajos y cajas, pocos muros
+    out.push([k, gen.kind === 'mercado' ? w * (pc.cell === 'X' ? .35 : pc.cell === 'A' || pc.cell === 'S' ? 1.6 : 1) : w]);
   }
   return out;
 }
@@ -787,6 +788,8 @@ function populate(seg, first) {
   const head0 = run ? 20 : 8, headLane = gen.lastExits.includes(0) ? 0 : pick(gen.lastExits);
   for (let k = head0; k < s - 4; k += 2.4) addObstacle(seg, 'moneda', k, headLane);
   let rowsInSeg = 0;
+  gen.kind = seg.kind;
+  const maxRows = seg.kind === 'plaza' ? 4 : cfg.streetMaxRows; // la plaza es un respiro: pocas filas
   while (s < end) {
     const heat = arrival(s), v = speedAt(heat);
     const tier = gen.scripted > 0 ? 0 : Math.max(0, tierOf(heat) + W('tierShift'));
@@ -797,7 +800,7 @@ function populate(seg, first) {
     const nearEnd = s + v * t1 * 1.5 + 14 > end; // cerca del cruce no caben combos
     // topes por calle: cuando ya no cabe otra fila completa (rowMaxObs) dentro del tope, esta es la última y lo que queda de calle va libre
     const nObs = seg.obs.reduce((c, o) => c + (o.collect || o.ghost || o.special ? 0 : 1), 0);
-    const capped = rowsInSeg + 1 >= cfg.streetMaxRows || nObs + 2 * cfg.rowMaxObs > cfg.streetMaxObs;
+    const capped = rowsInSeg + 1 >= maxRows || nObs + 2 * cfg.rowMaxObs > cfg.streetMaxObs;
     const lastRow = capped || s + v * t1 + 14 > end; // si después de esta fila ya no cabe otra, esta es la última: completa
     if (gen.respiro > 0 && !lastRow && !gen.scripted) { // respiro: dos huecos sin filas, con premio y decisiones de ruta
       const s1 = s + v * tRow;
@@ -810,7 +813,7 @@ function populate(seg, first) {
     const force = rowsInSeg === 0 || lastRow || gen.afterRespiro || gen.wave >= gen.waveN;
     let plan;
     if (gen.scripted > 0) { plan = { shapes: [SCRIPTED[SCRIPTED.length - gen.scripted]], inner: 0, key: 'guion' }; gen.scripted--; }
-    else plan = pickShape(tier, force, nearEnd || rowsInSeg + 4 > cfg.streetMaxRows || nObs + 4 * cfg.rowMaxObs > cfg.streetMaxObs); // un combo (hasta 3 filas) solo si cabe con la fila de cierre
+    else plan = pickShape(tier, force, nearEnd || rowsInSeg + 4 > maxRows || nObs + 4 * cfg.rowMaxObs > cfg.streetMaxObs); // un combo (hasta 3 filas) solo si cabe con la fila de cierre
     gen.lastCombo = plan.shapes.length > 1;
     let rowS = s, row = null;
     for (let i = 0; i < plan.shapes.length; i++) {
@@ -876,8 +879,14 @@ function defaultSide(st, seg, side, s0, end) {
 // balcones: corredores elevados pegados a la fachada; se deciden antes de armar las fachadas
 function planBalconies(seg) {
   seg.balconies = [];
-  if (sub || seg.first || !W('balconies')) return;
+  if (sub || seg.first || !W('balconies') || seg.kind === 'callejon' || seg.kind === 'plaza') return;
   const dist = seg.base;
+  if (seg.kind === 'tejado') { // calle de tejados: un corredor alto que cubre casi toda la calle
+    const L = clamp(seg.L - 150, 50, 80), side = gen.balconySide;
+    gen.balconySide = -side; gen.nextBalcony = dist + seg.L + rand(...cfg.balconyEvery);
+    seg.balconies.push({ side, s0: 50, s1: 55 + L, L });
+    return;
+  }
   if (dist + seg.L - 70 < gen.nextBalcony) return;
   const L = pick(cfg.balconyLens), s0 = Math.max(45, gen.nextBalcony - dist, rand(45, seg.L - 75 - L));
   if (s0 + 5 + L > seg.L - 70) return;
@@ -899,11 +908,70 @@ function sowBalconies(seg) {
     if (food) food.make(seg, b.s0 + 5 + b.L - 3, lane, 2.2); else addObstacle(seg, 'pescado', b.s0 + 5 + b.L - 3, lane, 2.2);
   }
 }
-function buildSegment(origin, yaw, first, base = 0, bonus = false, turned = false) {
+// Tipos de calle. Las laterales salen más variadas (y la flecha lo anuncia); de frente, solo de vez en cuando.
+const KIND_LABEL = { callejon: '🐭 callejón', mercado: '🧺 mercado', plaza: '⛲ plaza', tejado: '🏠 tejados' };
+function kindFor(d) {
+  if (sub || world.tunnel) return '';
+  const r = Math.random(), bal = W('balconies');
+  if (d !== 0) return r < .4 ? 'callejon' : r < .55 ? 'mercado' : r < .68 && bal ? 'tejado' : r < .75 ? 'plaza' : '';
+  return r < .12 ? 'mercado' : r < .2 ? 'plaza' : r < .3 && bal ? 'tejado' : '';
+}
+// callejón: los muros se cierran sobre la calzada (sin andén), con ropa tendida contra la pared, cajas y faroles
+function alleySide(st, seg, side, a, end) {
+  const ROPA = [0xe8456b, 0x2f6fd0, 0xffffff, 0xf2b632, 0x2f8f6b, 0xff7a3a];
+  let s = a;
+  while (s < end - .1) {
+    let w = pick([8, 10, 12]);
+    if (end - s - w < 6) w = end - s;
+    const z = -(s + w / 2), r = Math.random();
+    block(st, side * (4.9 + DEPTH / 2), z, DEPTH, w);
+    part(BOX, pick(W('zocalos')), .12, 1.2, w, side * 4.86, .8, z, st);
+    if (r < .45) {
+      part(BOX, 0xe8e0d0, .04, .04, w * .7, side * 4.78, 4.85, z, st);
+      for (let k = 0; k < 3; k++) { const h = rand(.8, 1.3); part(BOX, pick(ROPA), .06, h, rand(.6, 1), side * 4.8, 4.8 - h / 2, z + (k - 1) * 1.4, st); }
+    } else if (r < .75) {
+      part(BOX, 0xb9833f, .5, .5, .5, side * 4.62, .25, z, st); part(BOX, 0xc9954f, .4, .4, .4, side * 4.66, .7, z + .05, st).rotation.y = .4;
+    } else { part(CYL, 0xb5653a, .4, .45, .4, side * 4.66, .22, z, st); part(SPH, pick([0xe8456b, 0xffb020, 0x3f9a4f]), .5, .45, .5, side * 4.66, .6, z, st); }
+    part(BOX, 0x1a1a1f, .3, .06, .06, side * 4.75, 3.75, z + w / 2 - .5, st); part(BOX, 0xffd98a, .22, .32, .22, side * 4.66, 3.55, z + w / 2 - .5, st);
+    s += w;
+  }
+}
+// plaza: sin fachadas encima; piso ancho, árboles y bancas en hilera, una fuente a un lado y un quiosco al otro, casas al fondo
+function plazaSide(st, seg, side, a, end) {
+  const len = end - a, mid = -(a + len / 2);
+  part(BOX, W('sidewalk'), DEPTH + 6, .3, len, side * (HALF + DEPTH / 2 + 1.5), .05, mid, st);
+  for (let s = a; s < end - .1;) { let w = pick([12, 14, 16]); if (end - s - w < 8) w = end - s; block(st, side * (HALF + DEPTH + 6 + DEPTH / 2), -(s + w / 2), DEPTH, w); s += w; }
+  for (let t = a + 6; t < end - 6; t += 14) {
+    part(CYL, 0x6b4a2f, .35, 2.4, .35, side * 10.5, 1.4, -t, st); part(SPH, 0x3f9a4f, 2.8, 2.4, 2.8, side * 10.5, 3.7, -t, st); part(SPH, 0x57b862, 1.9, 1.7, 1.9, side * 10.8, 4.8, -t, st);
+    part(BOX, 0x6b4a2f, .5, .1, 1.8, side * 8.4, .65, -t - 7, st); for (const d of [-.7, .7]) part(BOX, 0x3a2a1c, .4, .45, .1, side * 8.4, .42, -t - 7 + d, st);
+  }
+  const x = side * 15.5;
+  if (side > 0) { // fuente
+    part(CYL, 0xb9b4a8, 6, .8, 6, x, .6, mid, st); part(CYL, 0x6fb7e8, 5.2, .2, 5.2, x, .95, mid, st);
+    part(CYL, 0xb9b4a8, .9, 2.4, .9, x, 2, mid, st); part(CYL, 0xb9b4a8, 2.4, .25, 2.4, x, 3.2, mid, st); part(SPH, 0xa9dcf7, 1.4, 1.1, 1.4, x, 3.7, mid, st);
+  } else { // quiosco
+    part(CYL, 0xd9d0c2, 6, .6, 6, x, .5, mid, st);
+    for (let k = 0; k < 6; k++) part(BOX, 0xf0f0f0, .2, 3, .2, x + Math.cos(k * 1.047) * 2.6, 2.3, mid + Math.sin(k * 1.047) * 2.6, st);
+    part(CONE, W('roof'), 7.4, 1.8, 7.4, x, 4.7, mid, st).rotation.y = Math.PI / 4;
+  }
+}
+// mercado: puestos con toldo sobre el andén, mesa y fruta (se suma al decorado normal del mundo)
+function marketSide(st, seg, side, a, end) {
+  for (let t = a + 4; t < end - 6; t += 9) {
+    if (balconyAt(seg, side, t)) continue;
+    part(BOX, pick([0xd8433b, 0x2f8f6b, 0xf2c230, 0x2f6fd0]), 2.5, .14, 4, side * 6, 2.95, -t, st).rotation.z = side * .15;
+    for (const d of [-1.8, 1.8]) part(BOX, 0x6b4a2f, .1, 3.1, .1, side * 4.9, 1.6, -t + d, st);
+    part(BOX, 0x8a5a2b, 1.5, .9, 3.2, side * 6.4, .65, -t, st);
+    for (let k = 0; k < 5; k++) part(SPH, pick([0xff8a1f, 0xf2e24a, 0x7fc241, 0xe8456b]), .36, .36, .36, side * 6.3, 1.25, -t - 1.2 + k * .6, st);
+  }
+}
+function buildSegment(origin, yaw, first, base = 0, turned = false, kind = '') {
+  const bonus = kind === 'callejon';
   const L = first ? 180 : rand(165, 230), r = Math.random();
   const seg = {
     origin, yaw, L, first: !!first, obs: [], exits: {}, g: new THREE.Group(), world, base,
     sides: world.tunnel ? [] : r < .35 ? [-1] : r < .7 ? [1] : [-1, 1],
+    kind, // '' | 'callejon' | 'mercado' | 'plaza' | 'tejado': tipos de calle inventados (no copian ningún lugar); la flecha de GIRAR anuncia el de las laterales
     turned, // calle lateral: solo se entra girando, y no se ve antes de girar
     bonus, // calle con premio: solo calles laterales; la flecha de GIRAR lo anuncia y populate() la llena de ratones a cambio de filas más seguidas
     dir: new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)),
@@ -930,7 +998,10 @@ function buildSegment(origin, yaw, first, base = 0, bonus = false, turned = fals
   }
   for (const side of [-1, 1]) {
     if (world.tunnel) { world.side(st, seg, side, first ? s0 : HALF + DEPTH, L + HALF + DEPTH, game); continue; }
-    (world.side || defaultSide)(st, seg, side, first ? s0 : HALF + DEPTH, end, game);
+    const a = first ? s0 : HALF + DEPTH;
+    if (kind === 'callejon') alleySide(st, seg, side, a, end);
+    else if (kind === 'plaza') plazaSide(st, seg, side, a, end);
+    else { (world.side || defaultSide)(st, seg, side, a, end, game); if (kind === 'mercado') marketSide(st, seg, side, a, end); }
     block(st, side * (HALF + DEPTH / 2), -(L + HALF + DEPTH / 2), DEPTH, DEPTH);
     if (!seg.sides.includes(side)) block(st, side * (HALF + DEPTH / 2), -L, DEPTH, 15);
   }
@@ -950,7 +1021,7 @@ function buildSegment(origin, yaw, first, base = 0, bonus = false, turned = fals
 }
 const endOf = seg => seg.origin.clone().addScaledVector(seg.dir, seg.L);
 function openExits(seg) {
-  for (const d of [0, ...seg.sides]) seg.exits[d] = buildSegment(endOf(seg), seg.yaw - d * Math.PI / 2, false, seg.base + seg.L, d !== 0 && !sub && Math.random() < .5, d !== 0);
+  for (const d of [0, ...seg.sides]) seg.exits[d] = buildSegment(endOf(seg), seg.yaw - d * Math.PI / 2, false, seg.base + seg.L, d !== 0, kindFor(d));
 }
 function removeSegment(seg) {
   emit('segmentRemoved', seg);
@@ -1190,7 +1261,9 @@ function hud() {
 function hints(toCross) {
   for (const [id, d] of [['hl', -1], ['hr', 1]]) {
     const near = S.state === 'play' && cur.exits[d] && toCross < 60 && toCross > -3;
-    $(id).className = 'hint' + (near ? (p.turnQ === d ? ' sel' : p.turnQ ? '' : ' on') + (cur.exits[d].bonus ? ' bonus' : '') : '');
+    const kind = near ? cur.exits[d].kind : '';
+    $(id).className = 'hint' + (near ? (p.turnQ === d ? ' sel' : p.turnQ ? '' : ' on') + (kind ? ' bonus' : '') : '');
+    if (kind) { const em = $(id).querySelector('em'); if (em && em.textContent !== KIND_LABEL[kind]) em.textContent = KIND_LABEL[kind]; }
   }
 }
 

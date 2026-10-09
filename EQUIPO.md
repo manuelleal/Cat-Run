@@ -577,6 +577,19 @@ Bots, 30 partidas, mediana, girador / humano: Neón 51 / 43 s, Costa 65 / 59 s, 
 
 El dueño los había dejado fuera para no llenar el marcador y los pidió después "discretos". Son tres retos seguidos por partida en el modo infinito (ratones, monedas, metros, pasar agachado, girar, racha), de fácil a difícil, con 15, 25 y 40 monedas al instante. Van en una ficha chica bajo el botón de pausa: tres segundos dice qué hay que hacer y luego queda solo el conteo. No castigan. Probado en una partida simulada de 150 s: cumplió el primero a los 16 s y el segundo a los 69 s.
 
+### Coordinador — tipos de calle: callejón, mercado, plaza y tejados
+
+El dueño preguntó si convenía replicar pueblos o ciudades reales. La respuesta fue que no: a la velocidad de un runner un lugar real casi no se reconoce, hacerlo fiel cuesta mucho y amarra el juego a un público. Lo que sí sirve es la idea de cada tipo de calle, inventada. Se hicieron cuatro, que valen para los tres mundos porque usan las fachadas y colores del mundo en que salen:
+
+- **Callejón** (es la calle con premio): los muros se cierran sobre la calzada, sin andén, con ropa tendida contra la pared, cajas y faroles. Ratones en cada hueco y filas un poco más seguidas.
+- **Mercado:** puestos con toldo y fruta sobre el andén; salen más toldos bajos y cajas, y menos muros.
+- **Plaza:** abierta, con árboles, bancas, fuente y quiosco; máximo cuatro filas. Es un respiro.
+- **Tejados:** un corredor alto de 50 a 80 m con monedas y comida al final.
+
+La flecha de GIRAR dice cuál es la calle lateral antes de entrar. De frente salen de vez en cuando. No se hizo el callejón de dos carriles: cambia el generador entero y quedó para después.
+
+Bots, 30 partidas, mediana, girador / humano: Neón 59 / 45 s, Costa 58 / 45 s, Pueblo 53 / 56 s (humano del Pueblo con 24 partidas). Explorar ahora rinde unos trece segundos más en Neón y la Costa; es intencional (plazas y tejados son más amables), pero es más de lo que rendía antes.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.
