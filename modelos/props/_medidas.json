@@ -1,0 +1,309 @@
+{
+ "cocodrilo": {
+  "archivo": "cocodrilo.glb",
+  "bytes": 76904,
+  "tris": 2040,
+  "vertices": 1694,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -1.132,
+   0.0,
+   -2.559
+  ],
+  "caja_juego_max": [
+   1.132,
+   0.974,
+   2.93
+  ],
+  "nodos": [
+   {
+    "nodo": "jaw",
+    "padre": "cocodrilo",
+    "pivote_local": [
+     0,
+     0.22,
+     -0.98
+    ],
+    "tris": 792
+   },
+   {
+    "nodo": "tail_tip",
+    "padre": "tail",
+    "pivote_local": [
+     0,
+     -0.02,
+     0.75
+    ],
+    "tris": 96
+   },
+   {
+    "nodo": "tail",
+    "padre": "cocodrilo",
+    "pivote_local": [
+     0,
+     0.22,
+     1.25
+    ],
+    "tris": 136
+   },
+   {
+    "nodo": "cocodrilo",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 1016
+   }
+  ],
+  "fallos": []
+ },
+ "raton": {
+  "archivo": "raton.glb",
+  "bytes": 19000,
+  "tris": 556,
+  "vertices": 404,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -0.481,
+   0.0,
+   -0.807
+  ],
+  "caja_juego_max": [
+   0.481,
+   0.889,
+   1.208
+  ],
+  "nodos": [
+   {
+    "nodo": "raton",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 556
+   }
+  ],
+  "fallos": []
+ },
+ "moneda": {
+  "archivo": "moneda.glb",
+  "bytes": 30448,
+  "tris": 576,
+  "vertices": 718,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -0.46,
+   0.54,
+   -0.07
+  ],
+  "caja_juego_max": [
+   0.46,
+   1.46,
+   0.07
+  ],
+  "nodos": [
+   {
+    "nodo": "moneda",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 576
+   }
+  ],
+  "fallos": []
+ },
+ "gallina": {
+  "archivo": "gallina.glb",
+  "bytes": 36220,
+  "tris": 1238,
+  "vertices": 768,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -0.453,
+   0.006,
+   -0.769
+  ],
+  "caja_juego_max": [
+   0.453,
+   1.441,
+   0.605
+  ],
+  "nodos": [
+   {
+    "nodo": "gallina",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 1238
+   }
+  ],
+  "fallos": []
+ },
+ "pescado": {
+  "archivo": "pescado.glb",
+  "bytes": 17032,
+  "tris": 584,
+  "vertices": 344,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -0.28,
+   0.21,
+   -0.63
+  ],
+  "caja_juego_max": [
+   0.28,
+   0.983,
+   0.834
+  ],
+  "nodos": [
+   {
+    "nodo": "pescado",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 584
+   }
+  ],
+  "fallos": []
+ },
+ "caneca": {
+  "archivo": "caneca.glb",
+  "bytes": 47424,
+  "tris": 1204,
+  "vertices": 1062,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -0.699,
+   0.0,
+   -0.695
+  ],
+  "caja_juego_max": [
+   0.699,
+   1.601,
+   0.685
+  ],
+  "nodos": [
+   {
+    "nodo": "lid",
+    "padre": "caneca",
+    "pivote_local": [
+     0,
+     1.25,
+     -0.655
+    ],
+    "tris": 280
+   },
+   {
+    "nodo": "caneca",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 924
+   }
+  ],
+  "fallos": []
+ },
+ "carro": {
+  "archivo": "carro.glb",
+  "bytes": 33980,
+  "tris": 964,
+  "vertices": 727,
+  "materiales": [
+   "pintura",
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -1.18,
+   0.0,
+   -2.16
+  ],
+  "caja_juego_max": [
+   1.18,
+   1.96,
+   2.165
+  ],
+  "nodos": [
+   {
+    "nodo": "pintura",
+    "padre": "carro",
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 320
+   },
+   {
+    "nodo": "carro",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 644
+   }
+  ],
+  "fallos": []
+ },
+ "valla": {
+  "archivo": "valla.glb",
+  "bytes": 14160,
+  "tris": 252,
+  "vertices": 320,
+  "materiales": [
+   "color_vertice"
+  ],
+  "caja_juego_min": [
+   -1.4,
+   -0.019,
+   -0.377
+  ],
+  "caja_juego_max": [
+   1.4,
+   1.25,
+   0.377
+  ],
+  "nodos": [
+   {
+    "nodo": "valla",
+    "padre": null,
+    "pivote_local": [
+     0,
+     0,
+     0
+    ],
+    "tris": 252
+   }
+  ],
+  "fallos": []
+ }
+}

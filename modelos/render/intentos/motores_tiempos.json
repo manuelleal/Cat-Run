@@ -1,0 +1,32 @@
+{
+ "workbench": {
+  "segundos": 1.1,
+  "ok": true
+ },
+ "eevee": {
+  "segundos": 17.3,
+  "ok": true
+ },
+ "cycles_cpu_16": {
+  "segundos": 2.5,
+  "ok": true
+ },
+ "cycles_cpu_64_denoise": {
+  "segundos": 12.7,
+  "ok": true
+ },
+ "cycles_cpu_256_denoise": {
+  "segundos": 32.6,
+  "ok": true
+ },
+ "cycles_gpu_hip": {
+  "segundos": 0.0,
+  "ok": false,
+  "error": "ningún dispositivo HIP: la Radeon integrada no aparece"
+ },
+ "_escena": {
+  "resolucion": 768,
+  "hilos": 16,
+  "blender": "4.5.9 LTS"
+ }
+}

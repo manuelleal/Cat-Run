@@ -5,12 +5,5 @@ __pycache__/
 *.blend1
 Thumbs.db
 
-# Por ahora se publica solo el juego: el registro del proceso y los intentos quedan fuera
-EQUIPO.md
-AGENTES.md
-equipo/
-pruebas/
-modelos/intentos/
-modelos/render/intentos/
-modelos/props/intentos/
+# Configuración local de Blender: se regenera con modelos/render/guiones/crear_config.py
 modelos/render/config/

@@ -1,0 +1,195 @@
+<!doctype html>
+<!-- Visor de utilería: muestra los .glb de modelos/props/ con la MISMA luz, tono y cámara del juego (js/core.js, js/sewer.js)
+     y arma hojas de control en una sola imagen. Servir con: python modelos/props/servidor_props.py  (puerto 8767)
+       ?modo=fig&f=cocodrilo            seis vistas de una figura (frente, atrás como en el juego, lado, desde el perseguidor, pose, tamaño de juego)
+       ?modo=hoja                       la hoja de control completa (_hoja_props.png)
+       ?modo=juego&mundo=dia|drenaje    una escena armada como la carrera
+     Opciones: &guardar=nombre (POST a modelos/props/nombre.png; acepta intentos/nombre)  &mat=standard (material tal como viene en el .glb;
+     por defecto Lambert con color por vértice, que es como el juego funde su utilería) -->
+<html lang="es"><meta charset="utf-8"><title>Visor de utilería</title>
+<style>html,body{margin:0;background:#223;color:#fff;font:13px monospace}canvas{display:block;max-width:100%}#i{padding:6px;white-space:pre}</style>
+<div id="i">cargando…</div>
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+const q = new URLSearchParams(location.search), modo = q.get('modo') || 'hoja';
+const FIGS = (q.get('figs') || 'cocodrilo,raton,moneda,gallina,pescado,caneca,carro,valla').split(',');
+const POSES = {   // en ejes del juego: lo que el integrador le pondría a cada pieza
+  cocodrilo: { jaw: [.55, 0, 0], tail: [0, .35, 0], tail_tip: [0, .35, 0] },
+  caneca: { lid: [-1.9, 0, 0] }
+};
+const MUNDOS = {
+  dia: { fondo: 0x9cc4e8, hemi: [0xcfe6ff, 0x8a6f5a, 2.1], sol: [0xffe2b0, 2.4], piso: 0x9a9a92, calle: 0x3b3e48, anden: 0xcbb89a },
+  drenaje: { fondo: 0x12261f, hemi: [0xb8ffe6, 0x2a4a3e, 2.6], sol: [0xd8fff0, 1.6], piso: 0x1f4a40, calle: 0x1f4a40, anden: 0x4a554e }
+};
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;      // igual que js/core.js
+renderer.toneMappingExposure = 1.15;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(), hemi = new THREE.HemisphereLight(), sun = new THREE.DirectionalLight();
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 70 });
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = .03;
+scene.add(hemi, sun, sun.target);
+const piso = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshLambertMaterial());
+piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; scene.add(piso);
+const calle = new THREE.Group(); scene.add(calle);
+const cosas = new THREE.Group(); scene.add(cosas);
+const vcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+
+const protos = {}, datos = {}, loader = new GLTFLoader();
+const carga = (clave, url) => new Promise(ok => loader.load(url, g => {
+  let tris = 0, mallas = 0; const box = new THREE.Box3().setFromObject(g.scene);
+  g.scene.traverse(o => { if (o.isMesh) { mallas++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; o.castShadow = true; } });
+  protos[clave] = g.scene; datos[clave] = { tris, mallas, box };
+  ok();
+}, undefined, e => { datos[clave] = { error: String(e) }; ok(); }));
+
+const TINTES = [0xf2c230, 0xd8433b, 0xf2f2f2];   // CAR_COLORS de js/core.js
+function pon(clave, { x = 0, y = 0, z = 0, ry = 0, s = 1, pose = false, tinte = TINTES[0] } = {}) {
+  if (!protos[clave]) return null;
+  const g = protos[clave].clone(true);
+  if (FIGS.includes(clave) && q.get('mat') !== 'standard') g.traverse(o => { if (o.isMesh) o.material = vcMat; });
+  const lata = g.getObjectByName('pintura');   // la lata del carro se tiñe multiplicando su color casi blanco
+  if (lata) lata.material = new THREE.MeshLambertMaterial({ vertexColors: true, color: tinte });
+  if (clave === 'tinto') s *= 1.25;
+  if (clave === 'panela') { s *= 1.2; const t = g.getObjectByName('tail'); if (t) t.rotation.x = .9; }
+  if (pose && POSES[clave]) for (const [n, r] of Object.entries(POSES[clave])) g.getObjectByName(n)?.rotation.set(...r);
+  g.position.set(x, y, z); g.rotation.y = ry; g.scale.setScalar(s);
+  cosas.add(g);
+  return g;
+}
+function mundo(id, conCalle) {
+  const m = MUNDOS[id];
+  scene.background = new THREE.Color(m.fondo);
+  hemi.color.set(m.hemi[0]); hemi.groundColor.set(m.hemi[1]); hemi.intensity = m.hemi[2];
+  sun.color.set(m.sol[0]); sun.intensity = m.sol[1];
+  piso.material.color.set(conCalle ? m.anden : m.piso);
+  calle.clear();
+  if (conCalle) {
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 400), new THREE.MeshLambertMaterial({ color: m.calle }));
+    r.rotation.x = -Math.PI / 2; r.position.y = .01; r.receiveShadow = true; calle.add(r);
+    for (const x of [-1.5, 1.5]) for (let z = -120; z < 30; z += 6) {
+      const l = new THREE.Mesh(new THREE.PlaneGeometry(.18, 3), new THREE.MeshBasicMaterial({ color: id === 'dia' ? 0xd8d8d8 : 0x2b6557 }));
+      l.rotation.x = -Math.PI / 2; l.position.set(x, .02, z); calle.add(l);
+    }
+  }
+}
+// dibuja lo que haya en `cosas` y devuelve el lienzo del renderizador
+function foto(w, h, cam, centro = new THREE.Vector3()) {
+  renderer.setSize(w, h, false);
+  const camera = new THREE.PerspectiveCamera(cam.fov, w / h, .1, 420);
+  camera.position.set(...cam.pos); camera.lookAt(...cam.mira);
+  sun.position.set(centro.x + 9, 20, centro.z + 7); sun.target.position.copy(centro); sun.target.updateMatrixWorld();
+  const sc = cam.sombra || 24; Object.assign(sun.shadow.camera, { left: -sc, right: sc, top: sc, bottom: -sc }); sun.shadow.camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  return renderer.domElement;
+}
+// cámara que encuadra una caja desde una dirección (x, y, z) con lente angosta
+function encuadre(box, dir, fov = 22, margen = .82, aspecto = 1.3) {
+  margen *= Math.max(1, 1 / aspecto);   // en baldosas angostas manda el ancho
+  const c = box.getCenter(new THREE.Vector3()), R = box.getSize(new THREE.Vector3()).length() / 2;
+  const d = new THREE.Vector3(...dir).normalize().multiplyScalar(R * margen / Math.sin(THREE.MathUtils.degToRad(fov / 2)));
+  return { fov, pos: [c.x + d.x, c.y + d.y, c.z + d.z], mira: [c.x, c.y, c.z], sombra: Math.max(3, R * 2) };
+}
+const rad = THREE.MathUtils.degToRad;
+const DIR = {   // el frente de las figuras es -Z; la cámara del juego mira desde +Z
+  frente: [1.3, .75, -2], atras: [0, Math.sin(rad(20)), Math.cos(rad(20))], lado: [3, .45, -.15],
+  perseguidor: [0, Math.sin(rad(48)), Math.cos(rad(48))], atras34: [-1.2, 1.1, 2]
+};
+// la cámara de la carrera (js/core.js): detrás del perseguidor, alta, mirando 9 adelante del gato
+const camJuego = (gap = 8.5, vertical = false) => ({ fov: vertical ? 78 : 62, pos: [0, (vertical ? 8 : 6.8) + Math.max(0, 8.5 - gap) * .55, gap + (vertical ? 7 : 6)], mira: [0, 1, -9] });
+
+for (const k of ['jaw', 'lid']) if (q.get(k)) (k === 'jaw' ? POSES.cocodrilo : POSES.caneca)[k] = [+q.get(k), 0, 0];
+if (q.get('tail')) POSES.cocodrilo.tail = POSES.cocodrilo.tail_tip = [0, +q.get('tail'), 0];
+const hoja = document.createElement('canvas'), ctx = hoja.getContext('2d');
+function pega(x, y, w, h, cam, texto, centro) {
+  ctx.drawImage(foto(w, h, cam, centro), x, y);
+  if (texto) {
+    ctx.font = 'bold 15px Arial'; ctx.textBaseline = 'top';
+    const tw = ctx.measureText(texto).width;
+    ctx.fillStyle = '#000a'; ctx.fillRect(x, y, tw + 14, 24);
+    ctx.fillStyle = '#fff'; ctx.fillText(texto, x + 7, y + 5);
+  }
+}
+const caja = () => new THREE.Box3().setFromObject(cosas);
+
+function escenaJuego(id) {   // una carrera de mentira con las figuras donde aparecerían
+  cosas.clear(); mundo(id, true);
+  if (id === 'dia') {
+    pon('tinto'); pon('panela', { z: 8.5 });
+    for (let i = 0; i < 7; i++) pon('moneda', { x: -3, z: -3 - i * 2.6, ry: i * .7 });
+    for (let i = 0; i < 5; i++) pon('raton', { x: 3, z: -5 - i * 3, ry: Math.sin(i * 2) * .5 });
+    pon('gallina', { x: 0, z: -9, ry: .4 }); pon('gallina', { x: -3, z: -30, ry: -.5 });
+    pon('pescado', { x: 0, z: -17, ry: Math.PI / 2 }); pon('pescado', { x: 3, z: -26, ry: Math.PI / 2 });
+    pon('caneca', { x: 3, z: 0 }); pon('caneca', { x: -3, z: -24, pose: true });
+    pon('valla', { x: 0, z: -24 }); pon('valla', { x: 3, z: -38 }); pon('carro', { x: -3, z: -40, tinte: TINTES[1] }); pon('carro', { x: 0, z: -52 });
+    return camJuego(8.5);
+  }
+  pon('tinto'); pon('cocodrilo', { z: 4.5, s: 1.35, pose: true });   // el perseguidor grande (boss.scale 1.35 en js/sewer.js)
+  pon('cocodrilo', { x: -3, z: -11 }); pon('cocodrilo', { x: 3, z: -24, ry: .14 }); pon('cocodrilo', { x: 0, z: -38 });
+  for (let i = 0; i < 8; i++) pon('raton', { x: i % 2 ? 0 : 3, z: -4 - i * 2.2, ry: Math.sin(i * 2) * .5 });
+  for (let i = 0; i < 6; i++) pon('moneda', { x: -3, z: -18 - i * 2.6, ry: i * .7 });
+  return camJuego(4.5);
+}
+
+function modoFig(f) {
+  const W = 560, H = 420; hoja.width = W * 3; hoja.height = H * 2;
+  const tomas = [['frente', 'tres cuartos de frente'], ['atras', 'desde atrás, como obstáculo (20°)'], ['lado', 'lado'],
+    ['perseguidor', 'desde atrás y arriba (48°)'], ['atras34', POSES[f] ? 'pose' : 'tres cuartos de atrás']];
+  tomas.forEach(([d, t], k) => {
+    cosas.clear(); mundo(f === 'cocodrilo' && q.get('mundo') !== 'dia' ? 'drenaje' : 'dia', false);
+    pon(f, { pose: d === 'atras34' });
+    pega((k % 3) * W, Math.floor(k / 3) * H, W, H, encuadre(caja(), DIR[d]), t);
+  });
+  // tamaño de juego: la cámara real con la figura a 4, 10, 18 y 28 unidades por delante del gato
+  const id = f === 'cocodrilo' && q.get('mundo') !== 'dia' ? 'drenaje' : 'dia';
+  cosas.clear(); mundo(id, true);
+  [[0, -4], [-3, -10], [3, -18], [0, -28]].forEach(([x, z], i) => pon(f, { x, z, ry: f === 'pescado' ? Math.PI / 2 : f === 'moneda' ? i : 0 }));
+  pega(2 * W, H, W, H, camJuego(8.5), 'cámara del juego: a 4, 10, 18 y 28 del gato');
+}
+
+function modoHoja() {
+  const W = 1800; hoja.width = W; hoja.height = 420 + 420 + 300 + 300 + 560;
+  ctx.fillStyle = '#223'; ctx.fillRect(0, 0, W, hoja.height);
+  const fila = () => {   // todas en fila, a la misma escala, con Tinto y Panela de referencia
+    cosas.clear(); mundo('dia', false);
+    let x = -11.5;
+    for (const [f, ancho] of [['tinto', 1.6], ['panela', 2.2], ['cocodrilo', 2.6], ['raton', 1.5], ['moneda', 1.4], ['gallina', 1.5], ['pescado', 1.4], ['caneca', 1.9], ['valla', 3.2], ['carro', 2.8]]) {
+      x += ancho / 2; pon(f, { x }); x += ancho / 2 + .35;
+    }
+  };
+  fila(); let b = caja();
+  const cx = b.getCenter(new THREE.Vector3()).x, L = 29;
+  pega(0, 0, W, 420, { fov: 14, pos: [cx + 4, 6.2, -L], mira: [cx, .85, 0], sombra: 16 },
+    'Todas a la misma escala (1 = unidad del juego), con Tinto ×1,25 y Panela ×1,2 de referencia — de frente');
+  pega(0, 420, W, 420, { fov: 14, pos: [cx, L * Math.sin(rad(24)), L * Math.cos(rad(24))], mira: [cx, .85, 0], sombra: 16 },
+    'Las mismas desde atrás y arriba, que es de donde mira la cámara');
+  const TW = W / FIGS.length;
+  FIGS.forEach((f, k) => {
+    const d = datos[f] || {};
+    cosas.clear(); mundo(f === 'cocodrilo' ? 'drenaje' : 'dia', false); pon(f);
+    pega(k * TW, 840, TW, 300, encuadre(caja(), f === 'cocodrilo' ? DIR.perseguidor : DIR.atras, 22, .8, TW / 300), `${f} · ${d.tris ?? '?'} tri`);
+    cosas.clear(); pon(f, { pose: true });
+    pega(k * TW, 1140, TW, 300, encuadre(caja(), DIR.frente, 22, .8, TW / 300), POSES[f] ? 'de frente, con pose' : 'de frente');
+  });
+  let cam = escenaJuego('dia'); pega(0, 1440, 900, 560, cam, 'Cámara del juego, mundo de día (fov 62, alto 6,8)');
+  cam = escenaJuego('drenaje'); pega(900, 1440, 900, 560, cam, 'Cámara del juego, drenaje: el cocodrilo grande persigue (×1,35)');
+}
+
+await Promise.all([...FIGS.map(f => carga(f, f + '.glb?' + Date.now())), carga('tinto', '../tinto_v4.glb'), carga('panela', '../panela.glb')]);
+if (modo === 'fig') modoFig(q.get('f') || FIGS[0]);
+else if (modo === 'juego') { const V = q.get('vertical'), W = V ? 520 : 1000, H = V ? 920 : 620; hoja.width = W; hoja.height = H; const c = escenaJuego(q.get('mundo') || 'dia'); pega(0, 0, W, H, V ? camJuego(q.get('mundo') === 'drenaje' ? 4.5 : 8.5, true) : c, ''); }
+else modoHoja();
+document.body.appendChild(hoja);
+document.getElementById('i').textContent = Object.entries(datos).map(([k, d]) => d.error ? `${k}: ERROR ${d.error}` :
+  `${k}: ${d.mallas} mallas, ${d.tris} tri, caja ${d.box.min.toArray().map(v => v.toFixed(2))} .. ${d.box.max.toArray().map(v => v.toFixed(2))}`).join('\n');
+if (q.get('guardar')) hoja.toBlob(bl => fetch('/guardar/' + q.get('guardar') + '.png', { method: 'POST', body: bl }).then(r => { window.guardado = r.ok; document.title = 'guardado ' + r.status; }));
+window.listo = true;
+</script></html>
