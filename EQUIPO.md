@@ -561,6 +561,12 @@ El dueño aceptó cuatro de las cinco propuestas (dejó fuera los retos por part
 - **Cámara:** más cerca y Panela menos lejos en calma (6,5 m en vez de 8,5) y no tan encima en peligro (3,6 en vez de 2,8); la cámara sube más cuando ella se acerca. Flechas de GIRAR a poco más de la mitad del tamaño.
 - **Bots (20 semillas, mediana):** humano 52 / 43 / 51 s (Pueblo / Costa / Neón); el que gira en los cruces, 50 / 40 / 41 s; el quieto, 6 s. Girar no es una trampa mortal ni un atajo.
 
+### Coordinador — Neón medido y la Costa ajustada
+
+Con el lote completo (20 partidas) se vio que girar costaba vida: en Neón el que gira duraba 35 s contra 48 s del que sigue derecho. La calle con premio subía un escalón entero de dificultad, y eso adelanta motos, piezas móviles y combos. Ahora la calle con premio solo trae las filas un 10 % más seguidas. A la Costa se le dio una décima de segundo más entre filas en los tres primeros escalones.
+
+Bots, 30 partidas, mediana (cuartil bajo entre paréntesis): Costa humano 53 s (35), girador 53 s; Neón humano 53 s (32), girador 42 s; Pueblo humano 44 s (30), girador 47 s; quieto 6 s en los tres. El Pueblo ha dado entre 44 y 59 s en cuatro mediciones de hoy: con 20–30 partidas el margen es de unos ocho segundos, así que diferencias menores que eso no dicen nada.
+
 ## Errores y tropiezos
 
 El propósito del ejercicio es mostrar cómo trabajan los agentes con herramientas reales, y eso incluye dónde fallan. Esta lista se mantiene al día.

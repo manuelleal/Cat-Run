@@ -673,6 +673,8 @@ export function install(game) {
     sky: ['#1493e0', '#86d8f5', '#e6fbf4'], fog: 0xdff4ee, fogRange: [75, 220], hemi: [0xdff6ff, 0xe8d6a0, 2.4], sun: [0xfff4d0, 2.9],
     tints: [0xffd166, 0xff8fa3, 0x7fdbda, 0x9ad0ff, 0xffffff, 0xffb37a, 0xb8f0a0], roof: PAJA,
     sidewalk: 0xdcc79a, ground: 0xecd9a6, crossing: 0xb98d5a, heights: [0], food: 'cangrejo', balconies: true,
+    // un respiro más entre filas en los tres primeros escalones: aquí un cuarto de las partidas del jugador medio no pasaba de 23 s
+    rules: { tierRowTime: [[1.85, 2.15], [1.65, 1.95], [1.35, 1.6], [1.0, 1.3], [.95, 1.15]] },
     pieces: { alcantarilla: 4, senora: 6, carreta: 5, caja: 4, basura: 2, bolsas: 4, contenedor: 4, poste: 4, zanja: 4, tuboc: 3, hidrante: 3, andamio: 8,
       // suavizada: lo que viene hacia el gato (coco, gaviota) y lo duro (lancha) pesan menos; un jugador medio duraba 37 s aquí y 62 s en el Pueblo
       coco: 7, sombrilla: 10, lancha: 5, red: 9, surf: 11, castillo: 12, pelota: 7, gaviota: 6 },

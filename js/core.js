@@ -787,9 +787,9 @@ function populate(seg, first) {
   for (let k = head0; k < s - 4; k += 2.4) addObstacle(seg, 'moneda', k, headLane);
   let rowsInSeg = 0;
   while (s < end) {
-    const heat = arrival(s), tier = gen.scripted > 0 ? 0 : clamp(tierOf(heat) + W('tierShift') + (seg.bonus ? 1 : 0), 0, 4), v = speedAt(heat); // el arranque guionado enseña con piezas blandas
+    const heat = arrival(s), tier = gen.scripted > 0 ? 0 : Math.max(0, tierOf(heat) + W('tierShift')), v = speedAt(heat); // el arranque guionado enseña con piezas blandas
     const [t0, t1] = cfg.tierRowTime[Math.min(tier, 4)];
-    const tRow = rand(t0, t1);
+    const tRow = rand(t0, t1) * (seg.bonus ? .9 : 1); // calle con premio: las filas vienen un 10 % más seguidas (medido: subir un escalón entero costaba 12 s de vida en Neón)
     const nearEnd = s + v * t1 * 1.5 + 14 > end; // cerca del cruce no caben combos
     // topes por calle: cuando ya no cabe otra fila completa (rowMaxObs) dentro del tope, esta es la última y lo que queda de calle va libre
     const nObs = seg.obs.reduce((c, o) => c + (o.collect || o.ghost || o.special ? 0 : 1), 0);
@@ -899,7 +899,7 @@ function buildSegment(origin, yaw, first, base = 0, bonus = false) {
   const seg = {
     origin, yaw, L, first: !!first, obs: [], exits: {}, g: new THREE.Group(), world, base,
     sides: world.tunnel ? [] : r < .35 ? [-1] : r < .7 ? [1] : [-1, 1],
-    bonus, // calle con premio: solo calles laterales; la flecha de GIRAR lo anuncia y populate() la llena de ratones a cambio de un escalón más de dificultad
+    bonus, // calle con premio: solo calles laterales; la flecha de GIRAR lo anuncia y populate() la llena de ratones a cambio de filas más seguidas
     dir: new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)),
     right: new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw))
   };
