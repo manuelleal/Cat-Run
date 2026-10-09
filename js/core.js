@@ -521,6 +521,7 @@ function piece(type, def = {}) {
 }
 // piezas del núcleo (los pesos por mundo los pone cada mundo en `pieces`; el mundo por defecto arriba)
 for (const t of ['valla', 'caja', 'basura', 'alcantarilla', 'carro', 'bus', 'senora', 'carreta', 'cinta', 'contenedor', 'bolsas', 'zanja', 'tuboc', 'andamio']) piece(t);
+piece('caneca'); // punto de regeneración: no entra en las filas, solo la coloca specials() en un respiro
 piece('poste', { make(seg, s, lane) { // una sola viga, tres celdas: S en un lado, X en el centro, A en el otro
   const o = addObstacle(seg, 'poste', s, 0), dir = o.variant % 2 ? 1 : -1;
   const lo = addObstacle(seg, 'nada', s, -dir), hi = addObstacle(seg, 'nada', s, dir), mid = addObstacle(seg, 'nada', s, 0);
